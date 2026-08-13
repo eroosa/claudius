@@ -1,0 +1,1717 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Medication Administration Tracker</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --navy: #1a2332;
+    --navy-mid: #243044;
+    --slate-bg: #f0f4f8;
+    --white: #ffffff;
+    --gray-text: #64748b;
+    --gray-light: #cbd5e1;
+    --amber: #f59e0b;
+    --amber-light: #fef3c7;
+    --green: #10b981;
+    --green-light: #d1fae5;
+    --red: #ef4444;
+    --red-light: #fee2e2;
+    --blue: #3b82f6;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--slate-bg);
+    color: var(--navy);
+    min-height: 100vh;
+  }
+
+  header {
+    background: var(--navy);
+    color: white;
+    padding: 20px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  header h1 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+
+  header .subtitle {
+    font-size: 0.75rem;
+    color: var(--gray-light);
+    margin-top: 2px;
+    font-weight: 400;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .clock {
+    font-size: 0.85rem;
+    color: var(--gray-light);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.05em;
+  }
+
+  .main {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 28px 16px 60px;
+  }
+
+  .toolbar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .btn-add {
+    background: var(--navy);
+    color: white;
+    border: none;
+    padding: 9px 20px;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: background 0.15s;
+  }
+  .btn-add:hover { background: var(--navy-mid); }
+
+  .btn-clear-all {
+    background: none;
+    color: var(--red);
+    border: 1.5px solid var(--red);
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+  .btn-clear-all:hover { background: var(--red); color: white; }
+
+  .section-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--gray-text);
+    margin-bottom: 10px;
+  }
+
+  /* Patient cards */
+  .patient-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    margin-bottom: 16px;
+    overflow: hidden;
+    border: 1.5px solid transparent;
+    transition: border-color 0.2s;
+  }
+  .patient-card:focus-within { border-color: var(--blue); }
+
+  .patient-header {
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    cursor: pointer;
+    user-select: none;
+    background: white;
+    transition: background 0.15s;
+  }
+  .patient-header:hover { background: #f8fafc; }
+
+  .avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: var(--navy);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1rem;
+    flex-shrink: 0;
+  }
+
+  .patient-meta { flex: 1; }
+  .patient-name { font-size: 1rem; font-weight: 700; color: var(--navy); }
+  .patient-info { font-size: 0.775rem; color: var(--gray-text); margin-top: 2px; }
+
+  .patient-stats {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .badge {
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 20px;
+    letter-spacing: 0.03em;
+  }
+  .badge-pending { background: var(--amber-light); color: #92400e; }
+  .badge-done    { background: var(--green-light); color: #065f46; }
+
+  .chevron {
+    color: var(--gray-light);
+    font-size: 0.85rem;
+    transition: transform 0.2s;
+  }
+  .expanded .chevron { transform: rotate(90deg); }
+
+  .patient-body { display: none; border-top: 1px solid #f1f5f9; }
+  .expanded .patient-body { display: block; }
+
+  /* Medication table */
+  .med-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .med-table thead tr {
+    background: #f8fafc;
+  }
+  .med-table th {
+    padding: 9px 16px;
+    font-size: 0.675rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--gray-text);
+    text-align: left;
+    white-space: nowrap;
+  }
+
+  .med-table tbody tr {
+    border-top: 1px solid #f1f5f9;
+    transition: background 0.1s;
+  }
+  .med-table tbody tr:hover { background: #fafbfc; }
+
+  .med-table td {
+    padding: 13px 16px;
+    font-size: 0.85rem;
+    vertical-align: top;
+  }
+
+  .med-name {
+    font-weight: 700;
+    color: var(--navy);
+    font-size: 0.9rem;
+  }
+  .med-dosage {
+    color: var(--gray-text);
+    font-size: 0.78rem;
+    margin-top: 2px;
+  }
+  .med-schedule {
+    font-size: 0.8rem;
+    color: var(--navy);
+    font-weight: 500;
+  }
+  .med-description {
+    font-size: 0.78rem;
+    color: var(--gray-text);
+    max-width: 160px;
+    line-height: 1.4;
+  }
+
+  .day-pattern {
+    font-size: 0.75rem;
+    color: var(--gray-text);
+    margin-top: 3px;
+  }
+  .day-pattern.off-day { color: var(--red); font-weight: 600; }
+
+  .btn-admin.off-day {
+    background: #94a3b8;
+    animation: none;
+  }
+  .btn-admin.off-day:hover { background: #64748b; transform: none; }
+
+  .dow-checkboxes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 6px;
+  }
+  .dow-checkboxes label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--navy);
+    background: #f1f5f9;
+    border: 1.5px solid var(--gray-light);
+    border-radius: 6px;
+    padding: 4px 9px;
+    cursor: pointer;
+    transition: all 0.12s;
+    user-select: none;
+  }
+  .dow-checkboxes input[type=checkbox] { display: none; }
+  .dow-checkboxes input[type=checkbox]:checked + span {
+    /* handled via label styling below */
+  }
+  .dow-checkboxes label:has(input:checked) {
+    background: var(--navy);
+    color: white;
+    border-color: var(--navy);
+  }
+
+  /* Admin button */
+  .btn-admin {
+    background: var(--navy);
+    color: white;
+    border: none;
+    padding: 6px 10px;
+    border-radius: 7px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: normal;
+    line-height: 1.3;
+    text-align: center;
+    transition: background 0.15s, transform 0.1s;
+    display: inline-block;
+    min-width: 72px;
+  }
+  .btn-admin:hover { background: #243044; transform: translateY(-1px); }
+  .btn-admin.pending {
+    background: var(--amber);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(245,158,11,0.4); }
+    50% { box-shadow: 0 0 0 6px rgba(245,158,11,0); }
+  }
+  .btn-admin.administered { background: var(--green); animation: none; cursor: default; }
+  .btn-admin.administered:hover { transform: none; }
+  .btn-admin.off-day { background: #94a3b8; animation: none; cursor: default; }
+  .btn-admin.off-day:hover { background: #94a3b8; transform: none; }
+
+  .timestamp {
+    font-size: 0.72rem;
+    color: var(--green);
+    margin-top: 5px;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .timestamp-undo {
+    font-size: 0.68rem;
+    color: var(--gray-text);
+    text-decoration: underline;
+    cursor: pointer;
+    margin-left: 4px;
+    background: none;
+    border: none;
+    padding: 0;
+  }
+  .timestamp-undo:hover { color: var(--red); }
+
+  /* Patient card footer actions */
+  .card-footer {
+    padding: 10px 16px;
+    background: #f8fafc;
+    border-top: 1px solid #f1f5f9;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: flex-end;
+  }
+
+  .btn-sm {
+    font-size: 0.75rem;
+    padding: 5px 12px;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1.5px solid transparent;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .btn-edit { background: white; border-color: var(--gray-light); color: var(--navy); }
+  .btn-edit:hover { border-color: var(--navy); }
+  .btn-delete { background: white; border-color: #fca5a5; color: var(--red); }
+  .btn-delete:hover { background: var(--red); color: white; border-color: var(--red); }
+
+  .btn-notify { font-size: 0.75rem; padding: 5px 12px; border-radius: 6px; font-weight: 700; cursor: pointer; border: 1.5px solid transparent; transition: all 0.15s; white-space: nowrap; }
+  .btn-notify-none  { background: #e2e8f0; color: #94a3b8; border-color: #e2e8f0; cursor: default; }
+  .btn-notify-ready { background: var(--amber); color: #78350f; border-color: var(--amber); animation: pulse 2s infinite; }
+  .btn-notify-ready:hover { background: #d97706; border-color: #d97706; }
+  .btn-notify-sent  { background: var(--green); color: white; border-color: var(--green); animation: none; cursor: default; }
+
+  /* Modal */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: white;
+    border-radius: 14px;
+    width: 100%;
+    max-width: 560px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  }
+
+  .modal-header {
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid #f1f5f9;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .modal-header h2 { font-size: 1.05rem; font-weight: 700; }
+  .modal-close {
+    background: none;
+    border: none;
+    font-size: 1.3rem;
+    color: var(--gray-text);
+    cursor: pointer;
+    line-height: 1;
+    padding: 4px;
+  }
+  .modal-close:hover { color: var(--navy); }
+
+  .modal-body { padding: 20px 24px; }
+
+  .form-group { margin-bottom: 16px; }
+  .form-label {
+    display: block;
+    font-size: 0.775rem;
+    font-weight: 700;
+    color: var(--navy);
+    margin-bottom: 5px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .form-input, .form-select, .form-textarea {
+    width: 100%;
+    padding: 9px 13px;
+    border: 1.5px solid var(--gray-light);
+    border-radius: 8px;
+    font-size: 0.875rem;
+    color: var(--navy);
+    outline: none;
+    transition: border-color 0.15s;
+    font-family: inherit;
+    background: white;
+  }
+  .form-input:focus, .form-select:focus, .form-textarea:focus {
+    border-color: var(--blue);
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.12);
+  }
+  .form-textarea { resize: vertical; min-height: 70px; }
+
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  .med-section-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--blue);
+    margin: 20px 0 12px;
+    padding-bottom: 6px;
+    border-bottom: 2px solid #eff6ff;
+  }
+
+  .btn-add-med {
+    background: none;
+    border: 1.5px dashed var(--gray-light);
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 0.8rem;
+    color: var(--gray-text);
+    cursor: pointer;
+    width: 100%;
+    transition: all 0.15s;
+    font-weight: 600;
+  }
+  .btn-add-med:hover { border-color: var(--blue); color: var(--blue); background: #eff6ff; }
+
+  .med-entry {
+    border: 1.5px solid #f1f5f9;
+    border-radius: 10px;
+    padding: 14px;
+    margin-bottom: 10px;
+    position: relative;
+    background: #fafbfc;
+  }
+  .med-entry-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .med-entry-title { font-size: 0.8rem; font-weight: 700; color: var(--gray-text); }
+  .btn-remove-med {
+    background: none;
+    border: none;
+    color: var(--red);
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+  .btn-remove-med:hover { background: var(--red-light); }
+
+  .modal-footer {
+    padding: 14px 24px;
+    border-top: 1px solid #f1f5f9;
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+  }
+  .btn-cancel {
+    background: white;
+    border: 1.5px solid var(--gray-light);
+    color: var(--navy);
+    padding: 9px 20px;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-cancel:hover { border-color: var(--navy); }
+  .btn-save {
+    background: var(--navy);
+    color: white;
+    border: none;
+    padding: 9px 24px;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .btn-save:hover { background: var(--navy-mid); }
+
+  .btn-notify {
+    font-size: 0.75rem;
+    padding: 5px 12px;
+    border-radius: 6px;
+    font-weight: 700;
+    cursor: pointer;
+    border: 1.5px solid transparent;
+    transition: all 0.15s;
+  }
+  .btn-notify-none  { background: #e2e8f0; color: #94a3b8; border-color: #e2e8f0; cursor: default; }
+  .btn-notify-ready { background: var(--amber); color: #78350f; border-color: var(--amber); animation: pulse 2s infinite; }
+  .btn-notify-ready:hover { background: #d97706; border-color: #d97706; }
+  .btn-notify-sent  { background: var(--green); color: white; border-color: var(--green); animation: none; cursor: default; }
+
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--gray-text);
+  }
+  .empty-state .icon { font-size: 3rem; margin-bottom: 12px; }
+  .empty-state h3 { font-size: 1.05rem; font-weight: 700; color: var(--navy); margin-bottom: 6px; }
+  .empty-state p { font-size: 0.85rem; }
+
+  @media (max-width: 600px) {
+    .med-table thead { display: none; }
+    .med-table tbody tr { display: block; padding: 12px 16px; }
+    .med-table td { display: block; padding: 3px 0; }
+    .med-table td::before {
+      content: attr(data-label) ": ";
+      font-weight: 700;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      color: var(--gray-text);
+      letter-spacing: 0.05em;
+    }
+    .form-row { grid-template-columns: 1fr; }
+  }
+
+  /* Login screen */
+  #login-screen {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: var(--navy);
+    z-index: 999;
+    align-items: center;
+    justify-content: center;
+  }
+  #login-screen.active { display: flex; }
+  .login-box {
+    background: white;
+    border-radius: 16px;
+    padding: 40px 36px 32px;
+    width: 100%;
+    max-width: 360px;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.4);
+    text-align: center;
+  }
+  .login-icon { font-size: 2.5rem; margin-bottom: 10px; }
+  .login-box h2 { font-size: 1.2rem; font-weight: 700; color: var(--navy); margin-bottom: 4px; }
+  .login-box p { font-size: 0.8rem; color: var(--gray-text); margin-bottom: 24px; }
+  .login-box .form-input { margin-bottom: 12px; text-align: left; }
+  .login-error { color: var(--red); font-size: 0.8rem; margin-bottom: 10px; min-height: 1.2em; }
+  .btn-login {
+    width: 100%;
+    background: var(--navy);
+    color: white;
+    border: none;
+    padding: 11px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .btn-login:hover { background: var(--navy-mid); }
+  .login-hint { font-size: 0.72rem; color: var(--gray-text); margin-top: 14px; line-height: 1.5; }
+</style>
+</head>
+<body>
+
+<!-- Login screen -->
+<div id="login-screen" class="active">
+  <div class="login-box">
+    <div class="login-icon">💊</div>
+    <h2>MedTrack</h2>
+    <p id="login-subtitle">Enter your password to continue</p>
+    <div class="login-error" id="login-error"></div>
+    <input class="form-input" type="password" id="login-password" placeholder="Password"
+      onkeydown="if(event.key==='Enter')submitLogin()" />
+    <button class="btn-login" onclick="submitLogin()">Unlock</button>
+    <div class="login-hint" id="login-hint"></div>
+  </div>
+</div>
+
+<!-- Change Password Modal -->
+<div class="modal-overlay" id="chpw-modal-overlay" onclick="if(event.target===this)closeChpwModal()">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-header">
+      <h2>🔑 Change Password</h2>
+      <button class="modal-close" onclick="closeChpwModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Current Password</label>
+        <input class="form-input" type="password" id="chpw-current" placeholder="Current password" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">New Password *</label>
+        <input class="form-input" type="password" id="chpw-new" placeholder="At least 8 characters" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Confirm New Password *</label>
+        <input class="form-input" type="password" id="chpw-confirm" placeholder="Re-enter new password" />
+      </div>
+      <div id="chpw-error" style="color:var(--red);font-size:0.8rem;display:none;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeChpwModal()">Cancel</button>
+      <button class="btn-save" onclick="doChangePassword()">Save Password</button>
+    </div>
+  </div>
+</div>
+
+<header>
+  <div>
+    <h1>💊 NKRC MedTrack</h1>
+    <div class="subtitle">Medication Administration Log &nbsp;·&nbsp; Built 2026-07-08 12:21 UTC</div>
+  </div>
+  <div class="clock" id="clock"></div>
+  <button onclick="lockApp()" style="background:none;border:1.5px solid rgba(255,255,255,0.3);color:white;padding:6px 14px;border-radius:7px;font-size:0.78rem;font-weight:600;cursor:pointer;letter-spacing:0.03em;" title="Lock">🔒 Lock</button>
+</header>
+
+<div class="main">
+  <div class="toolbar">
+    <button class="btn-add" onclick="openAddPatient()">＋ Add Patient</button>
+    <button class="btn-clear-all" onclick="clearAllLogs()">Clear All Logs</button>
+    <button class="btn-cancel" onclick="openExportModal()">🔒 Encrypted Export</button>
+    <button class="btn-cancel" onclick="openImportModal()">📂 Import</button>
+    <button class="btn-cancel" onclick="openChpwModal()">🔑 Password</button>
+    <button class="btn-cancel" onclick="openLogModal(null)">📋 All Logs</button>
+    <input type="file" id="import-file-input" accept=".medtrack,.json" style="display:none" onchange="handleImportFile(event)" />
+  </div>
+
+  <div class="section-label" id="patient-count-label"></div>
+  <div id="patient-list"></div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modal-overlay" onclick="handleOverlayClick(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modal-title">Add Patient</h2>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Patient Name *</label>
+          <input class="form-input" id="f-name" placeholder="Full name" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Room / ID</label>
+          <input class="form-input" id="f-room" placeholder="e.g. Room 214" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notes</label>
+        <input class="form-input" id="f-notes" placeholder="Allergies, conditions, etc." />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notification Email</label>
+        <input class="form-input" id="f-notify-email" type="email" placeholder="e.g. caregiver@example.com (optional)" />
+      </div>
+
+      <div class="med-section-label">Medications</div>
+      <div id="med-entries"></div>
+      <button class="btn-add-med" onclick="addMedEntry()">＋ Add Medication</button>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-save" onclick="savePatient()">Save Patient</button>
+    </div>
+  </div>
+</div>
+
+<!-- Export Modal -->
+<div class="modal-overlay" id="export-modal-overlay" onclick="if(event.target===this)closeExportModal()">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-header">
+      <h2>🔒 Encrypted Export</h2>
+      <button class="modal-close" onclick="closeExportModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:0.85rem; color:var(--gray-text); margin-bottom:16px; line-height:1.5;">
+        Choose a password to encrypt the export file. You'll need this exact password to import it again — there's no way to recover the data without it.
+      </p>
+      <div class="form-group">
+        <label class="form-label">Password *</label>
+        <input class="form-input" type="password" id="export-password" placeholder="Enter a strong password" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Confirm Password *</label>
+        <input class="form-input" type="password" id="export-password-confirm" placeholder="Re-enter password" />
+      </div>
+      <div id="export-error" style="color:var(--red); font-size:0.8rem; display:none;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeExportModal()">Cancel</button>
+      <button class="btn-save" onclick="doEncryptedExport()">Export File</button>
+    </div>
+  </div>
+</div>
+
+<!-- Import Modal -->
+<div class="modal-overlay" id="import-modal-overlay" onclick="if(event.target===this)closeImportModal()">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-header">
+      <h2>📂 Import Encrypted File</h2>
+      <button class="modal-close" onclick="closeImportModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:0.85rem; color:var(--gray-text); margin-bottom:16px;" id="import-filename"></p>
+      <div class="form-group">
+        <label class="form-label">Password *</label>
+        <input class="form-input" type="password" id="import-password" placeholder="Enter the export password" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Import Mode</label>
+        <select class="form-select" id="import-mode">
+          <option value="merge">Merge with existing patients</option>
+          <option value="replace">Replace all existing patients</option>
+        </select>
+      </div>
+      <div id="import-error" style="color:var(--red); font-size:0.8rem; display:none;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeImportModal()">Cancel</button>
+      <button class="btn-save" onclick="doDecryptedImport()">Import</button>
+    </div>
+  </div>
+</div>
+
+<!-- Log Viewer Modal -->
+<div class="modal-overlay" id="log-modal-overlay" onclick="if(event.target===this)closeLogModal()">
+  <div class="modal" style="max-width:660px">
+    <div class="modal-header">
+      <h2 id="log-modal-title">📋 Administration Log</h2>
+      <button class="modal-close" onclick="closeLogModal()">✕</button>
+    </div>
+    <div class="modal-body" style="padding:0">
+      <div id="log-modal-body" style="max-height:60vh;overflow-y:auto;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeLogModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── State ───────────────────────────────────────────────────────────────────
+let patients = [];
+let editingId = null;
+
+const SCHEDULES = [
+  "Once daily (QD)", "Twice daily (BID)", "Three times daily (TID)",
+  "Four times daily (QID)", "Every 4 hours", "Every 6 hours",
+  "Every 8 hours", "Every 12 hours", "As needed (PRN)", "Weekly",
+  "At bedtime (QHS)", "With meals"
+];
+
+// Required administrations per day for each schedule
+const DOSES_REQUIRED = {
+  "Once daily (QD)":       1,
+  "Twice daily (BID)":     2,
+  "Three times daily (TID)": 3,
+  "Four times daily (QID)": 4,
+  "Every 4 hours":         6,
+  "Every 6 hours":         4,
+  "Every 8 hours":         3,
+  "Every 12 hours":        2,
+  "As needed (PRN)":       0, // no fixed requirement
+  "Weekly":                1,
+  "At bedtime (QHS)":      1,
+  "With meals":            3,
+};
+
+function dosesRequired(med) {
+  return DOSES_REQUIRED[med.schedule] ?? 1;
+}
+
+// ─── Persistence ─────────────────────────────────────────────────────────────
+function save() {
+  localStorage.setItem("medtrack_patients", JSON.stringify(patients));
+}
+
+function load() {
+  const raw = localStorage.getItem("medtrack_patients");
+  patients = raw ? JSON.parse(raw) : getSampleData();
+  render();
+}
+
+function getSampleData() {
+  return [
+    {
+      id: uid(), name: "Margaret Chen", room: "Room 101", notes: "Penicillin allergy",
+      expanded: true,
+      meds: [
+        { id: uid(), drug: "Lisinopril",    dosage: "10 mg",  schedule: "Once daily (QD)",    dayPattern: "daily", dowDays: [], description: "Small white oval tablet",        adminLog: [] },
+        { id: uid(), drug: "Metformin",     dosage: "500 mg", schedule: "Twice daily (BID)",   dayPattern: "odd",   dowDays: [], description: "White round tablet",             adminLog: [] },
+        { id: uid(), drug: "Atorvastatin",  dosage: "20 mg",  schedule: "At bedtime (QHS)",    dayPattern: "dow",   dowDays: [1,3,5], description: "Small white elliptical tablet", adminLog: [] }
+      ]
+    },
+    {
+      id: uid(), name: "Robert Alvarez", room: "Room 204", notes: "",
+      expanded: false,
+      meds: [
+        { id: uid(), drug: "Warfarin",    dosage: "5 mg",  schedule: "Once daily (QD)",  dayPattern: "daily", dowDays: [], description: "Pink scored tablet",   adminLog: [] },
+        { id: uid(), drug: "Furosemide", dosage: "40 mg", schedule: "Twice daily (BID)", dayPattern: "even",  dowDays: [], description: "White round tablet",  adminLog: [] }
+      ]
+    }
+  ];
+}
+
+function uid() {
+  return Math.random().toString(36).slice(2, 10);
+}
+
+// ─── Clock ────────────────────────────────────────────────────────────────────
+function updateClock() {
+  const now = new Date();
+  const jdn = julianDayNumber(now);
+  const parity = jdn % 2 === 0 ? "Even" : "Odd";
+  document.getElementById("clock").textContent =
+    now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }) +
+    " · " + now.toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" }) +
+    " · JDN " + jdn + " (" + parity + ")";
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ─── Render ───────────────────────────────────────────────────────────────────
+function render() {
+  const list = document.getElementById("patient-list");
+  const label = document.getElementById("patient-count-label");
+  label.textContent = patients.length
+    ? `${patients.length} Patient${patients.length !== 1 ? "s" : ""}`
+    : "";
+
+  if (!patients.length) {
+    list.innerHTML = `
+      <div class="empty-state">
+        <div class="icon">🏥</div>
+        <h3>No patients yet</h3>
+        <p>Click "Add Patient" to begin tracking medications.</p>
+      </div>`;
+    return;
+  }
+
+  list.innerHTML = patients.map(p => renderPatient(p)).join("");
+}
+
+function renderPatient(p) {
+  const todayStr = new Date().toDateString();
+  const pendingCount = p.meds.filter(m => {
+    const given = m.adminLog.filter(ts => new Date(ts).toDateString() === todayStr).length;
+    const req   = dosesRequired(m);
+    return req === 0 ? false : given < req;
+  }).length;
+  const doneCount = p.meds.filter(m => {
+    const given = m.adminLog.filter(ts => new Date(ts).toDateString() === todayStr).length;
+    const req   = dosesRequired(m);
+    return req === 0 ? given > 0 : given >= req;
+  }).length;
+  const initials = p.name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
+
+  const badges = [
+    pendingCount ? `<span class="badge badge-pending">⏳ ${pendingCount} pending</span>` : "",
+    doneCount    ? `<span class="badge badge-done">✓ ${doneCount} given</span>` : ""
+  ].filter(Boolean).join(" ");
+
+  const medRows = p.meds.map(m => {
+    const todayLog   = m.adminLog.filter(ts => new Date(ts).toDateString() === todayStr);
+    const givenCount = todayLog.length;
+    const req        = dosesRequired(m);
+    const lastTodayTs     = todayLog[todayLog.length - 1];
+    const isAdministered  = req === 0 ? false : givenCount >= req;
+    const offDay = !isScheduledToday(m);
+    const btnClass = isAdministered
+      ? "btn-admin administered"
+      : offDay ? "btn-admin off-day" : "btn-admin pending";
+    const btnLabel = isAdministered
+      ? "✓ Given"
+      : offDay
+        ? "Off Day"
+        : req > 1
+          ? `Administer (${givenCount}/${req})`
+          : "Administer";
+    const btnExtra = isAdministered
+      ? "disabled"
+      : `onclick="adminMed('${p.id}','${m.id}')"`;
+    const timestampHtml = lastTodayTs
+      ? `<div class="timestamp">
+           ✓ ${new Date(lastTodayTs).toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" })}
+           <button class="timestamp-undo" onclick="undoAdmin('${p.id}','${m.id}')" title="Undo">undo</button>
+         </div>`
+      : "";
+
+    const patternLabel = formatDayPattern(m);
+    const patternClass = offDay ? "day-pattern off-day" : "day-pattern";
+
+    return `<tr>
+      <td data-label="Medication">
+        <div class="med-name">${esc(m.drug)}</div>
+        <div class="med-dosage">${esc(m.dosage)}</div>
+      </td>
+      <td data-label="Frequency"><div class="med-schedule">${esc(m.schedule)}</div></td>
+      <td data-label="Day Pattern"><div class="${patternClass}">${patternLabel}</div></td>
+      <td data-label="Description"><div class="med-description">${esc(m.description)}</div></td>
+      <td data-label="Instructions"><div class="med-description">${esc(m.instructions || '—')}</div></td>
+      <td data-label="Administer">
+        <button class="${btnClass}" ${btnExtra}>${btnLabel}</button>
+        ${timestampHtml}
+      </td>
+    </tr>`;
+  }).join("");
+
+  return `
+  <div class="patient-card ${p.expanded ? "expanded" : ""}" id="card-${p.id}">
+    <div class="patient-header" onclick="toggleCard('${p.id}')">
+      <div class="avatar">${initials}</div>
+      <div class="patient-meta">
+        <div class="patient-name">${esc(p.name)}</div>
+        <div class="patient-info">${p.room ? esc(p.room) : ""}${p.notes ? (p.room ? " · " : "") + esc(p.notes) : ""}${p.notifyEmail ? ` · ✉ ${esc(p.notifyEmail)}` : ""}</div>
+      </div>
+      <div class="patient-stats">${badges}</div>
+      <span class="chevron">›</span>
+    </div>
+    <div class="patient-body">
+      <table class="med-table">
+        <thead>
+          <tr>
+            <th>Medication / Dosage</th>
+            <th>Frequency</th>
+            <th>Day Pattern</th>
+            <th>Description</th>
+            <th>Instructions</th>
+            <th>Administration</th>
+          </tr>
+        </thead>
+        <tbody>${medRows}</tbody>
+      </table>
+      <div class="card-footer">
+        ${p.notifyEmail ? (() => {
+          const todayMeds = todayAdministered(p);
+          const sent = emailSentToday[p.id];
+          if (sent) {
+            return `<button class="btn-notify btn-notify-sent" disabled>✉ Sent</button>`;
+          } else if (todayMeds.length > 0) {
+            return `<button class="btn-notify btn-notify-ready" onclick="sendNotifyEmail('${p.id}')">✉ Send Report</button>`;
+          } else {
+            return `<button class="btn-notify btn-notify-none" disabled>✉ None Given</button>`;
+          }
+        })() : ""}
+        ${(() => {
+          const todayMeds = todayAdministered(p);
+          if (todayMeds.length > 0) {
+            const copied = reportCopied[p.id];
+            return copied
+              ? `<button class="btn-notify btn-notify-sent" disabled>📋 Copied</button>`
+              : `<button class="btn-notify btn-notify-ready" style="animation:none;background:#6366f1;border-color:#6366f1;" onclick="copyReport('${p.id}')">📋 Copy Report</button>`;
+          }
+          return `<button class="btn-notify btn-notify-none" disabled>📋 Copy</button>`;
+        })()}
+        <button class="btn-sm btn-edit" onclick="openEditPatient('${p.id}')">✏ Edit</button>
+        <button class="btn-sm" style="background:white;border:1.5px solid #a5b4fc;color:#4f46e5;" onclick="openLogModal('${p.id}')">📋 Logs</button>
+        <button class="btn-sm btn-delete" onclick="deletePatient('${p.id}')">🗑 Remove</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function esc(s) {
+  return String(s || "")
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+}
+
+// ─── Card toggle ──────────────────────────────────────────────────────────────
+function toggleCard(pid) {
+  const p = patients.find(x => x.id === pid);
+  if (p) { p.expanded = !p.expanded; save(); render(); }
+}
+
+// ─── Administer ──────────────────────────────────────────────────────────────
+const emailSentToday = {}; // pid -> true (session-only; resets if new med given)
+const reportCopied   = {}; // pid -> true (session-only; resets if new med given)
+
+function todayAdministered(p) {
+  const todayStr = new Date().toDateString();
+  return p.meds.flatMap(m =>
+    m.adminLog
+      .filter(ts => new Date(ts).toDateString() === todayStr)
+      .map(ts => ({ med: m, ts }))
+  ).sort((a, b) => a.ts - b.ts);
+}
+
+function adminMed(pid, mid) {
+  const p = patients.find(x => x.id === pid);
+  if (!p) return;
+  const m = p.meds.find(x => x.id === mid);
+  if (!m) return;
+  m.adminLog.push(Date.now());
+  // New administration resets sent/copied state
+  delete emailSentToday[pid];
+  delete reportCopied[pid];
+  save();
+  render();
+}
+
+function undoAdmin(pid, mid) {
+  const p = patients.find(x => x.id === pid); if (!p) return;
+  const m = p.meds.find(x => x.id === mid);   if (!m) return;
+  const todayStr = new Date().toDateString();
+  for (let i = m.adminLog.length - 1; i >= 0; i--) {
+    if (new Date(m.adminLog[i]).toDateString() === todayStr) {
+      m.adminLog.splice(i, 1);
+      break;
+    }
+  }
+  save(); render();
+}
+
+function sendNotifyEmail(pid) {
+  const p = patients.find(x => x.id === pid);
+  if (!p || !p.notifyEmail) return;
+  const entries = todayAdministered(p);
+  if (!entries.length) return;
+  const text = buildReportText(p);
+  const dateStr = new Date().toLocaleDateString([], {
+    weekday: "long", month: "long", day: "numeric", year: "numeric"
+  });
+  const subject = `Medication report: ${p.name} — ${dateStr}`;
+  const mailto = `mailto:${encodeURIComponent(p.notifyEmail)}`
+    + `?subject=${encodeURIComponent(subject)}`
+    + `&body=${encodeURIComponent(text)}`;
+  window.location.href = mailto;
+  emailSentToday[pid] = true;
+  setTimeout(() => render(), 100);
+}
+
+function buildReportText(p) {
+  const entries = todayAdministered(p);
+  if (!entries.length) return null;
+  const dateStr = new Date().toLocaleDateString([], {
+    weekday: "long", month: "long", day: "numeric", year: "numeric"
+  });
+  const header = `Patient: ${p.name}${p.room ? " (" + p.room + ")" : ""}`;
+  const medLines = entries.map(({ med, ts }) => {
+    const when = new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const instr = med.instructions ? `\n      Instructions: ${med.instructions}` : "";
+    return `  • ${med.drug} ${med.dosage} (${med.schedule}) — ${when}${instr}`;
+  }).join("\n");
+  return `Daily medication administration report.\n\n${header}\nDate: ${dateStr}\n\nMedications administered today:\n${medLines}`;
+}
+
+async function copyReport(pid) {
+  const p = patients.find(x => x.id === pid);
+  if (!p) return;
+  const text = buildReportText(p);
+  if (!text) return;
+  try {
+    await navigator.clipboard.writeText(text);
+    reportCopied[pid] = true;
+    render();
+  } catch {
+    // Fallback for browsers that block clipboard without user gesture context
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    document.execCommand("copy");
+    document.body.removeChild(ta);
+    reportCopied[pid] = true;
+    render();
+  }
+}
+
+function undoAdmin(pid, mid) {
+  const p = patients.find(x => x.id === pid);
+  if (!p) return;
+  const m = p.meds.find(x => x.id === mid);
+  if (!m || !m.adminLog.length) return;
+  m.adminLog.pop();
+  save();
+  render();
+}
+
+// ─── Clear all logs ──────────────────────────────────────────────────────────
+function clearAllLogs() {
+  if (!confirm("Clear all administration logs? This cannot be undone.")) return;
+  patients.forEach(p => p.meds.forEach(m => m.adminLog = []));
+  save();
+  render();
+}
+
+// ─── Delete patient ──────────────────────────────────────────────────────────
+function deletePatient(pid) {
+  const p = patients.find(x => x.id === pid);
+  if (!confirm(`Remove ${p?.name || "this patient"}?`)) return;
+  patients = patients.filter(x => x.id !== pid);
+  save();
+  render();
+}
+
+// ─── Modal ────────────────────────────────────────────────────────────────────
+let medCount = 0;
+
+function openAddPatient() {
+  editingId = null;
+  document.getElementById("modal-title").textContent = "Add Patient";
+  document.getElementById("f-name").value = "";
+  document.getElementById("f-room").value = "";
+  document.getElementById("f-notes").value = "";
+  document.getElementById("f-notify-email").value = "";
+  document.getElementById("med-entries").innerHTML = "";
+  medCount = 0;
+  addMedEntry();
+  document.getElementById("modal-overlay").classList.add("open");
+}
+
+function openEditPatient(pid) {
+  editingId = pid;
+  const p = patients.find(x => x.id === pid);
+  if (!p) return;
+  document.getElementById("modal-title").textContent = "Edit Patient";
+  document.getElementById("f-name").value = p.name;
+  document.getElementById("f-room").value = p.room || "";
+  document.getElementById("f-notes").value = p.notes || "";
+  document.getElementById("f-notify-email").value = p.notifyEmail || "";
+  document.getElementById("med-entries").innerHTML = "";
+  medCount = 0;
+  p.meds.forEach(m => addMedEntry(m));
+  document.getElementById("modal-overlay").classList.add("open");
+}
+
+function closeModal() {
+  document.getElementById("modal-overlay").classList.remove("open");
+  editingId = null;
+}
+
+function handleOverlayClick(e) {
+  if (e.target === document.getElementById("modal-overlay")) closeModal();
+}
+
+function addMedEntry(med) {
+  medCount++;
+  const id = `med-${medCount}`;
+  const html = `
+  <div class="med-entry" id="${id}">
+    <div class="med-entry-header">
+      <span class="med-entry-title">Medication ${medCount}</span>
+      <button class="btn-remove-med" onclick="removeMedEntry('${id}')">✕</button>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Drug Name *</label>
+        <input class="form-input med-drug" placeholder="e.g. Lisinopril" value="${esc(med?.drug || '')}" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Dosage *</label>
+        <input class="form-input med-dosage" placeholder="e.g. 10 mg" value="${esc(med?.dosage || '')}" />
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Frequency</label>
+      <select class="form-select med-schedule">
+        ${SCHEDULES.map(s =>
+          `<option value="${s}" ${med?.schedule === s ? "selected" : ""}>${s}</option>`
+        ).join("")}
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Day Pattern</label>
+      <select class="form-select med-day-pattern" onchange="toggleDowPicker(this)">
+        <option value="daily"     ${(!med?.dayPattern || med?.dayPattern==='daily')     ? 'selected':''}>Every day</option>
+        <option value="odd"       ${med?.dayPattern==='odd'       ? 'selected':''}>Odd Julian Day (JDN)</option>
+        <option value="even"      ${med?.dayPattern==='even'      ? 'selected':''}>Even Julian Day (JDN)</option>
+        <option value="dow"       ${med?.dayPattern==='dow'       ? 'selected':''}>Specific days of the week…</option>
+      </select>
+      <div class="dow-checkboxes" style="display:${med?.dayPattern==='dow' ? 'flex':'none'}">
+        ${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map((d,i) => {
+          const checked = med?.dowDays?.includes(i) ? 'checked' : '';
+          return `<label><input type="checkbox" class="dow-cb" value="${i}" ${checked}/><span>${d}</span></label>`;
+        }).join('')}
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Physical Description</label>
+      <textarea class="form-textarea med-description" placeholder="Color, shape, markings…">${esc(med?.description || '')}</textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Administration Instructions</label>
+      <textarea class="form-textarea med-instructions" placeholder="e.g. Take with food, avoid grapefruit, crush and mix with applesauce…">${esc(med?.instructions || '')}</textarea>
+    </div>
+  </div>`;
+  document.getElementById("med-entries").insertAdjacentHTML("beforeend", html);
+}
+
+function removeMedEntry(id) {
+  const el = document.getElementById(id);
+  if (el) el.remove();
+}
+
+function savePatient() {
+  const name = document.getElementById("f-name").value.trim();
+  if (!name) { alert("Patient name is required."); return; }
+
+  const medEls = document.querySelectorAll("#med-entries .med-entry");
+  const meds = [];
+  for (const el of medEls) {
+    const drug = el.querySelector(".med-drug").value.trim();
+    const dosage = el.querySelector(".med-dosage").value.trim();
+    if (!drug || !dosage) { alert("Each medication needs a drug name and dosage."); return; }
+    const dayPattern = el.querySelector(".med-day-pattern").value;
+    const dowDays = dayPattern === "dow"
+      ? Array.from(el.querySelectorAll(".dow-cb:checked")).map(cb => parseInt(cb.value))
+      : [];
+    if (dayPattern === "dow" && dowDays.length === 0) {
+      alert(`Select at least one day of the week for ${drug}.`); return;
+    }
+    meds.push({
+      id: uid(),
+      drug,
+      dosage,
+      schedule: el.querySelector(".med-schedule").value,
+      dayPattern,
+      dowDays,
+      description: el.querySelector(".med-description").value.trim(),
+      instructions: el.querySelector(".med-instructions").value.trim(),
+      adminLog: []
+    });
+  }
+
+  if (!meds.length) { alert("Add at least one medication."); return; }
+
+  if (editingId) {
+    const idx = patients.findIndex(x => x.id === editingId);
+    if (idx > -1) {
+      // Preserve admin logs for existing meds by drug name
+      const oldMeds = patients[idx].meds;
+      meds.forEach(m => {
+        const prev = oldMeds.find(o => o.drug.toLowerCase() === m.drug.toLowerCase());
+        if (prev) m.adminLog = prev.adminLog;
+      });
+      patients[idx] = { ...patients[idx], name, room: document.getElementById("f-room").value.trim(), notes: document.getElementById("f-notes").value.trim(), notifyEmail: document.getElementById("f-notify-email").value.trim(), meds };
+    }
+  } else {
+    patients.push({
+      id: uid(),
+      name,
+      room: document.getElementById("f-room").value.trim(),
+      notes: document.getElementById("f-notes").value.trim(),
+      notifyEmail: document.getElementById("f-notify-email").value.trim(),
+      expanded: true,
+      meds
+    });
+  }
+
+  save();
+  render();
+  closeModal();
+}
+
+// ─── Day Pattern helpers ──────────────────────────────────────────────────────
+function toggleDowPicker(sel) {
+  const picker = sel.closest(".med-entry").querySelector(".dow-checkboxes");
+  picker.style.display = sel.value === "dow" ? "flex" : "none";
+}
+
+// ─── Julian Day (van Flandern algorithm via kalends.js) ───────────────────────
+function julianDayNumber(date) {
+  var y = date.getFullYear();
+  var m = date.getMonth() + 1;
+  var d = date.getDate();
+  var n = Math.ceil((m - 14) / 12);
+  var j = d - 32075;
+  j += Math.floor(1461 * (y + 4800 + n) / 4);
+  j += Math.floor(367  * (m - 2 - n * 12) / 12);
+  j -= Math.floor(3    * Math.floor((y + 4900 + n) / 100) / 4);
+  return j;
+}
+
+function isScheduledToday(med) {
+  const dp = med.dayPattern || "daily";
+  if (dp === "daily") return true;
+  const jdn = julianDayNumber(new Date());
+  if (dp === "odd")  return jdn % 2 === 1;
+  if (dp === "even") return jdn % 2 === 0;
+  if (dp === "dow")  return (med.dowDays || []).includes(new Date().getDay());
+  return true;
+}
+
+function formatDayPattern(med) {
+  const dp = med.dayPattern || "daily";
+  if (dp === "daily") return "Every day";
+  if (dp === "odd")   return `Odd JDN`;
+  if (dp === "even")  return `Even JDN`;
+  if (dp === "dow") {
+    const names = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+    return (med.dowDays || []).map(d => names[d]).join(", ") || "No days set";
+  }
+  return dp;
+}
+
+// ─── Auth / Login ─────────────────────────────────────────────────────────────
+const PW_KEY = "medtrack_pwhash";
+let sessionUnlocked = false;
+
+async function sha256(str) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,"0")).join("");
+}
+
+function isPasswordSet() {
+  return !!localStorage.getItem(PW_KEY);
+}
+
+async function submitLogin() {
+  const pw = document.getElementById("login-password").value;
+  const errEl = document.getElementById("login-error");
+
+  if (!isPasswordSet()) {
+    // First-run: set the password
+    if (pw.length < 8) {
+      errEl.textContent = "Password must be at least 8 characters.";
+      return;
+    }
+    localStorage.setItem(PW_KEY, await sha256(pw));
+    unlock();
+    return;
+  }
+
+  const hash = await sha256(pw);
+  if (hash === localStorage.getItem(PW_KEY)) {
+    unlock();
+  } else {
+    errEl.textContent = "Incorrect password.";
+    document.getElementById("login-password").value = "";
+    document.getElementById("login-password").focus();
+  }
+}
+
+function unlock() {
+  sessionUnlocked = true;
+  document.getElementById("login-screen").classList.remove("active");
+  document.getElementById("login-password").value = "";
+  document.getElementById("login-error").textContent = "";
+  load();
+}
+
+function lockApp() {
+  sessionUnlocked = false;
+  patients = [];
+  document.getElementById("patient-list").innerHTML = "";
+  document.getElementById("login-password").value = "";
+  document.getElementById("login-error").textContent = "";
+  // Update subtitle in case password is now set
+  initLoginScreen();
+  document.getElementById("login-screen").classList.add("active");
+}
+
+function initLoginScreen() {
+  if (!isPasswordSet()) {
+    document.getElementById("login-subtitle").textContent = "Create a password to get started";
+    document.getElementById("login-hint").textContent = "You're setting up MedTrack for the first time. Choose a password (min 8 characters). There is no recovery — don't forget it.";
+  } else {
+    document.getElementById("login-subtitle").textContent = "Enter your password to continue";
+    document.getElementById("login-hint").textContent = "";
+  }
+}
+
+// ─── Change Password ──────────────────────────────────────────────────────────
+function openChpwModal() {
+  document.getElementById("chpw-current").value = "";
+  document.getElementById("chpw-new").value = "";
+  document.getElementById("chpw-confirm").value = "";
+  document.getElementById("chpw-error").style.display = "none";
+  document.getElementById("chpw-modal-overlay").classList.add("open");
+}
+function closeChpwModal() {
+  document.getElementById("chpw-modal-overlay").classList.remove("open");
+}
+
+async function doChangePassword() {
+  const errEl = document.getElementById("chpw-error");
+  const current = document.getElementById("chpw-current").value;
+  const nw = document.getElementById("chpw-new").value;
+  const confirm = document.getElementById("chpw-confirm").value;
+
+  const currentHash = await sha256(current);
+  if (currentHash !== localStorage.getItem(PW_KEY)) {
+    errEl.textContent = "Current password is incorrect.";
+    errEl.style.display = "block";
+    return;
+  }
+  if (nw.length < 8) {
+    errEl.textContent = "New password must be at least 8 characters.";
+    errEl.style.display = "block";
+    return;
+  }
+  if (nw !== confirm) {
+    errEl.textContent = "New passwords do not match.";
+    errEl.style.display = "block";
+    return;
+  }
+
+  localStorage.setItem(PW_KEY, await sha256(nw));
+  closeChpwModal();
+  alert("Password updated successfully.");
+}
+
+// ─── Log Viewer ───────────────────────────────────────────────────────────────
+function openLogModal(pid) {
+  const title = pid
+    ? `📋 Log — ${patients.find(x=>x.id===pid)?.name || 'Patient'}`
+    : '📋 All Administration Logs';
+  document.getElementById("log-modal-title").textContent = title;
+  document.getElementById("log-modal-body").innerHTML = renderLogBody(pid);
+  document.getElementById("log-modal-overlay").classList.add("open");
+}
+
+function closeLogModal() {
+  document.getElementById("log-modal-overlay").classList.remove("open");
+}
+
+function renderLogBody(pid) {
+  const scope = pid ? patients.filter(x => x.id === pid) : patients;
+
+  // Collect all log entries across scope
+  const entries = [];
+  scope.forEach(p => {
+    p.meds.forEach(m => {
+      m.adminLog.forEach(ts => {
+        entries.push({ ts, patientName: p.name, room: p.room, drug: m.drug, dosage: m.dosage, schedule: m.schedule });
+      });
+    });
+  });
+
+  if (!entries.length) {
+    return `<div style="padding:32px;text-align:center;color:var(--gray-text);font-size:0.875rem;">No administration records found.</div>`;
+  }
+
+  // Sort newest first
+  entries.sort((a, b) => b.ts - a.ts);
+
+  // Group by date
+  const groups = {};
+  entries.forEach(e => {
+    const dateKey = new Date(e.ts).toDateString();
+    if (!groups[dateKey]) groups[dateKey] = [];
+    groups[dateKey].push(e);
+  });
+
+  const showPatient = !pid; // show patient column only in global view
+
+  let html = '';
+  for (const [dateKey, rows] of Object.entries(groups)) {
+    const jdn = julianDayNumber(new Date(rows[0].ts));
+    const parity = jdn % 2 === 0 ? 'Even' : 'Odd';
+    const dateLabel = new Date(rows[0].ts).toLocaleDateString([], { weekday:'long', month:'long', day:'numeric', year:'numeric' });
+    html += `
+      <div style="background:#f8fafc;padding:8px 18px;font-size:0.7rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--gray-text);border-bottom:1px solid #f1f5f9;position:sticky;top:0;z-index:1;">
+        ${dateLabel} &nbsp;·&nbsp; JDN ${jdn} (${parity})
+      </div>
+      <table style="width:100%;border-collapse:collapse;">`;
+    if (showPatient) {
+      html += `<thead style="background:#f8fafc;"><tr>
+        <th style="padding:7px 16px;font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--gray-text);text-align:left;">Time</th>
+        <th style="padding:7px 16px;font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--gray-text);text-align:left;">Patient</th>
+        <th style="padding:7px 16px;font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--gray-text);text-align:left;">Medication</th>
+        <th style="padding:7px 16px;font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--gray-text);text-align:left;">Schedule</th>
+      </tr></thead>`;
+    } else {
+      html += `<thead style="background:#f8fafc;"><tr>
+        <th style="padding:7px 16px;font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--gray-text);text-align:left;">Time</th>
+        <th style="padding:7px 16px;font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--gray-text);text-align:left;">Medication</th>
+        <th style="padding:7px 16px;font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--gray-text);text-align:left;">Schedule</th>
+      </tr></thead>`;
+    }
+    html += `<tbody>`;
+    rows.forEach((e, i) => {
+      const time = new Date(e.ts).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
+      const bg = i % 2 === 0 ? 'white' : '#fafbfc';
+      if (showPatient) {
+        html += `<tr style="border-top:1px solid #f1f5f9;background:${bg};">
+          <td style="padding:10px 16px;font-size:0.82rem;font-variant-numeric:tabular-nums;color:var(--gray-text);">${time}</td>
+          <td style="padding:10px 16px;font-size:0.82rem;font-weight:600;color:var(--navy);">${esc(e.patientName)}${e.room ? ` <span style="font-weight:400;color:var(--gray-text);">(${esc(e.room)})</span>` : ''}</td>
+          <td style="padding:10px 16px;font-size:0.82rem;color:var(--navy);">${esc(e.drug)} <span style="color:var(--gray-text);">${esc(e.dosage)}</span></td>
+          <td style="padding:10px 16px;font-size:0.78rem;color:var(--gray-text);">${esc(e.schedule)}</td>
+        </tr>`;
+      } else {
+        html += `<tr style="border-top:1px solid #f1f5f9;background:${bg};">
+          <td style="padding:10px 16px;font-size:0.82rem;font-variant-numeric:tabular-nums;color:var(--gray-text);">${time}</td>
+          <td style="padding:10px 16px;font-size:0.82rem;color:var(--navy);">${esc(e.drug)} <span style="color:var(--gray-text);">${esc(e.dosage)}</span></td>
+          <td style="padding:10px 16px;font-size:0.78rem;color:var(--gray-text);">${esc(e.schedule)}</td>
+        </tr>`;
+      }
+    });
+    html += `</tbody></table>`;
+  }
+  return html;
+}
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+initLoginScreen();
+// load() is called by unlock() after successful login
+
+// ─── Encrypted Export / Import ─────────────────────────────────────────────────
+let pendingImportFile = null;
+
+function openExportModal() {
+  document.getElementById("export-password").value = "";
+  document.getElementById("export-password-confirm").value = "";
+  document.getElementById("export-error").style.display = "none";
+  document.getElementById("export-modal-overlay").classList.add("open");
+}
+function closeExportModal() {
+  document.getElementById("export-modal-overlay").classList.remove("open");
+}
+
+function openImportModal() {
+  document.getElementById("import-file-input").click();
+}
+function closeImportModal() {
+  document.getElementById("import-modal-overlay").classList.remove("open");
+  pendingImportFile = null;
+}
+
+function handleImportFile(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  pendingImportFile = file;
+  document.getElementById("import-filename").textContent = `File: ${file.name}`;
+  document.getElementById("import-password").value = "";
+  document.getElementById("import-error").style.display = "none";
+  document.getElementById("import-modal-overlay").classList.add("open");
+  e.target.value = "";
+}
+
+// Derive an AES-GCM key from a password + salt using PBKDF2
+async function deriveKey(password, salt) {
+  const enc = new TextEncoder();
+  const baseKey = await crypto.subtle.importKey(
+    "raw", enc.encode(password), "PBKDF2", false, ["deriveKey"]
+  );
+  return crypto.subtle.deriveKey(
+    { name: "PBKDF2", salt, iterations: 250000, hash: "SHA-256" },
+    baseKey,
+    { name: "AES-GCM", length: 256 },
+    false,
+    ["encrypt", "decrypt"]
+  );
+}
+
+function bufToBase64(buf) {
+  return btoa(String.fromCharCode(...new Uint8Array(buf)));
+}
+function base64ToBuf(b64) {
+  return Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+}
+
+async function doEncryptedExport() {
+  const pw = document.getElementById("export-password").value;
+  const pwConfirm = document.getElementById("export-password-confirm").value;
+  const errEl = document.getElementById("export-error");
+
+  if (!pw || pw.length < 8) {
+    errEl.textContent = "Password must be at least 8 characters.";
+    errEl.style.display = "block";
+    return;
+  }
+  if (pw !== pwConfirm) {
+    errEl.textContent = "Passwords do not match.";
+    errEl.style.display = "block";
+    return;
+  }
+
+  try {
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const key = await deriveKey(pw, salt);
+
+    const plaintext = JSON.stringify({ patients, exportedAt: Date.now() });
+    const enc = new TextEncoder();
+    const ciphertext = await crypto.subtle.encrypt(
+      { name: "AES-GCM", iv }, key, enc.encode(plaintext)
+    );
+
+    const payload = {
+      format: "medtrack-encrypted-v1",
+      salt: bufToBase64(salt),
+      iv: bufToBase64(iv),
+      data: bufToBase64(ciphertext)
+    };
+
+    const blob = new Blob([JSON.stringify(payload)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const stamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+    a.href = url;
+    a.download = `medtrack-export-${stamp}.medtrack`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    closeExportModal();
+  } catch (err) {
+    errEl.textContent = "Export failed: " + err.message;
+    errEl.style.display = "block";
+  }
+}
+
+async function doDecryptedImport() {
+  const errEl = document.getElementById("import-error");
+  if (!pendingImportFile) return;
+
+  const pw = document.getElementById("import-password").value;
+  if (!pw) {
+    errEl.textContent = "Enter the password used to encrypt this file.";
+    errEl.style.display = "block";
+    return;
+  }
+
+  try {
+    const text = await pendingImportFile.text();
+    const payload = JSON.parse(text);
+
+    if (payload.format !== "medtrack-encrypted-v1") {
+      errEl.textContent = "This doesn't look like a valid MedTrack export file.";
+      errEl.style.display = "block";
+      return;
+    }
+
+    const salt = base64ToBuf(payload.salt);
+    const iv = base64ToBuf(payload.iv);
+    const ciphertext = base64ToBuf(payload.data);
+    const key = await deriveKey(pw, salt);
+
+    let plaintextBuf;
+    try {
+      plaintextBuf = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, ciphertext);
+    } catch {
+      errEl.textContent = "Incorrect password, or the file is corrupted.";
+      errEl.style.display = "block";
+      return;
+    }
+
+    const dec = new TextDecoder();
+    const parsed = JSON.parse(dec.decode(plaintextBuf));
+    const importedPatients = parsed.patients || [];
+
+    const mode = document.getElementById("import-mode").value;
+    if (mode === "replace") {
+      patients = importedPatients;
+    } else {
+      // Merge: append imported patients with fresh IDs to avoid collisions
+      importedPatients.forEach(p => {
+        p.id = uid();
+        p.meds.forEach(m => m.id = uid());
+        patients.push(p);
+      });
+    }
+
+    save();
+    render();
+    closeImportModal();
+    alert(`Imported ${importedPatients.length} patient record(s) successfully.`);
+  } catch (err) {
+    errEl.textContent = "Import failed: " + err.message;
+    errEl.style.display = "block";
+  }
+}
+</script>
+</body>
+</html>
