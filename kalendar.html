@@ -1,0 +1,2273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Kalends — a JDN Almanac</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  @font-face { font-family: 'sys-serif'; src: local('Georgia'); }
+
+  :root{
+    --ink:      #10151c;
+    --panel:    #171e27;
+    --panel-2:  #1d2530;
+    --parchment:#e9dfc7;
+    --parchment-dim:#9aa5ad;
+    --brass:    #c8a24d;
+    --brass-dim:#8a713a;
+    --azure:    #6f93a8;
+    --rule:     #2a3441;
+    --today-glow: rgba(200,162,77,0.35);
+    --bg-glow:      #1a2330;
+    --out-daynum:   #3a434e;
+    --out-hover-bg: #161c24;
+    --overlay-scrim: rgba(8,11,15,0.72);
+    --danger:   #c0654f;
+
+    /* Cross-platform font stacks: every option here is available on at
+       least one of Windows/macOS/Android/Linux, with generic fallbacks
+       last so text always renders even if none of the named faces exist. */
+    --font-serif: Georgia, 'Noto Serif', 'PT Serif', Cambria, 'Liberation Serif', 'Times New Roman', serif;
+    --font-mono:  Consolas, 'Roboto Mono', 'Droid Sans Mono', 'Noto Sans Mono', 'Liberation Mono', 'Courier New', monospace;
+
+    --zoom: 1;
+  }
+
+  @media (prefers-color-scheme: light){
+    :root{
+      --ink:      #f3ecda;
+      --panel:    #faf6ea;
+      --panel-2:  #efe6cf;
+      --parchment:#2b2118;
+      --parchment-dim:#6b5a44;
+      --brass:    #8a6a1f;
+      --brass-dim:#a98d4a;
+      --azure:    #2f5f75;
+      --rule:     #d8cca8;
+      --today-glow: rgba(138,106,31,0.25);
+      --bg-glow:      #e8dfc0;
+      --out-daynum:   #b9ac8c;
+      --out-hover-bg: #e3d7b4;
+      --overlay-scrim: rgba(70,58,34,0.35);
+      --danger:   #a8442e;
+    }
+  }
+
+  *{box-sizing:border-box;}
+
+  html,body{
+    margin:0; padding:0;
+    background:
+      radial-gradient(ellipse at 20% -10%, var(--bg-glow) 0%, transparent 55%),
+      var(--ink);
+    color:var(--parchment);
+    font-family: var(--font-serif);
+    min-height:100vh;
+    transition: background-color .2s, color .2s;
+  }
+
+  .stage{
+    max-width:1040px;
+    margin:0 auto;
+    padding: 28px 18px 60px;
+    transform: scale(var(--zoom));
+    transform-origin: top center;
+  }
+
+  /* ---------- header ---------- */
+  header.top{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    border-bottom:1px solid var(--rule);
+    padding-bottom:14px;
+    margin-bottom:22px;
+    flex-wrap:wrap;
+    gap:10px;
+  }
+  .brand{
+    font-family: var(--font-serif);
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    font-size:13px;
+    color:var(--brass);
+  }
+  .brand small{
+    display:inline;
+    margin-left:10px;
+    letter-spacing:0.08em;
+    color:var(--parchment-dim);
+    font-size:10px;
+    text-transform:none;
+    font-style:italic;
+  }
+  .buildstamp{
+    text-align:center;
+    font-family:var(--font-mono);
+    font-style:normal;
+    font-size:9px;
+    color:var(--parchment-dim);
+    opacity:0.6;
+    letter-spacing:0.04em;
+    margin-top:18px;
+  }
+  .epoch-note{
+    font-family: var(--font-mono);
+    font-size:11px;
+    color:var(--parchment-dim);
+    text-align:right;
+    line-height:1.5;
+  }
+  .epoch-note b{ color:var(--azure); font-weight:normal;}
+
+  /* ---------- nav / title ---------- */
+  .navbar{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-wrap:wrap;
+    margin-bottom:22px;
+  }
+  .navbtn{
+    appearance:none;
+    background:transparent;
+    border:1px solid var(--rule);
+    color:var(--brass);
+    width:34px; height:34px;
+    flex:0 0 auto;
+    border-radius:50%;
+    font-size:16px;
+    cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    transition:border-color .15s, color .15s, transform .1s;
+  }
+  .navbtn:hover{ border-color:var(--brass); color:var(--parchment); }
+  .navbtn:active{ transform:scale(0.92); }
+  .navbtn-year{ font-size:13px; }
+
+  .databar{
+    display:flex;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:10px;
+    margin-bottom:22px;
+    padding-bottom:16px;
+    border-bottom:1px solid var(--rule);
+    font-family:var(--font-mono);
+    font-size:11px;
+  }
+  .databar button{
+    appearance:none;
+    background:transparent;
+    border:1px solid var(--rule);
+    color:var(--azure);
+    font-family:var(--font-mono);
+    font-size:11px;
+    letter-spacing:0.02em;
+    padding:5px 11px;
+    cursor:pointer;
+  }
+  .databar button:hover{ border-color:var(--azure); color:var(--parchment); }
+  .databar-status{
+    color:var(--brass);
+    font-style:italic;
+    opacity:0;
+    transition:opacity .3s;
+  }
+  .databar-status.show{ opacity:1; }
+
+  .month-span-note{
+    font-family:var(--font-mono);
+    font-size:10.5px;
+    color:var(--parchment-dim);
+    text-align:center;
+  }
+  .databar-sep{
+    width:1px; height:16px;
+    background:var(--rule);
+    margin:0 2px;
+    flex:0 0 auto;
+  }
+  .zoomgroup{
+    display:flex;
+    gap:0;
+    flex:0 0 auto;
+  }
+  .zoomgroup button{
+    appearance:none;
+    background:transparent;
+    border:1px solid var(--rule);
+    color:var(--azure);
+    font-family:var(--font-mono);
+    font-size:11px;
+    letter-spacing:0.02em;
+    padding:5px 9px;
+    cursor:pointer;
+    margin-left:-1px;
+  }
+  .zoomgroup button:first-child{ margin-left:0; }
+  .zoomgroup button:hover{ border-color:var(--azure); color:var(--parchment); position:relative; z-index:1; }
+  #zoomResetBtn{ color:var(--parchment-dim); min-width:44px; }
+
+  .remindergroup{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    flex:0 0 auto;
+    font-family:var(--font-mono);
+    font-size:11px;
+    color:var(--parchment-dim);
+  }
+  .remLabel{
+    display:flex;
+    align-items:center;
+    gap:4px;
+    cursor:pointer;
+    user-select:none;
+  }
+  .remindergroup input[type=checkbox]{
+    accent-color:var(--brass);
+    cursor:pointer;
+  }
+  .remindergroup input[type=number]{
+    width:4.5em;
+    background:var(--panel);
+    border:1px solid var(--rule);
+    color:var(--parchment);
+    font-family:var(--font-mono);
+    font-size:11px;
+    padding:4px 5px;
+  }
+  .remindergroup input[type=number]:focus{ outline:none; border-color:var(--brass); }
+  .remindergroup input[type=number]::-webkit-inner-spin-button,
+  .remindergroup input[type=number]::-webkit-outer-spin-button{
+    -webkit-appearance:none; margin:0;
+  }
+  .remindergroup input[type=number]{ -moz-appearance:textfield; }
+
+  .reminder-toast{
+    position:fixed;
+    top:16px;
+    left:50%;
+    transform:translateX(-50%);
+    z-index:200;
+    max-width:90vw;
+    background:var(--panel);
+    border:1px solid var(--brass);
+    border-left:4px solid var(--brass);
+    color:var(--parchment);
+    font-family:var(--font-serif);
+    font-size:13px;
+    padding:12px 18px;
+    box-shadow:0 4px 18px rgba(0,0,0,0.35);
+  }
+  .reminder-toast[hidden]{ display:none; }
+  .reminder-toast b{ color:var(--brass); }
+
+  .monthtitle{
+    text-align:center;
+    min-width:0;
+  }
+  .datepicker{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+    flex-wrap:nowrap;
+    max-width:100%;
+    overflow-x:auto;
+  }
+  .picker-group{
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+  .monthSelect, .yearInput{
+    appearance:none;
+    background:transparent;
+    border:none;
+    border-bottom:1px dotted var(--rule);
+    color:var(--parchment);
+    font-family:var(--font-serif);
+    font-size:32px;
+    font-weight:400;
+    letter-spacing:0.04em;
+    text-align:center;
+    cursor:pointer;
+    padding:0 2px 2px;
+  }
+  .monthSelect:hover, .yearInput:hover{ border-bottom-color:var(--azure); }
+  .monthSelect:focus, .yearInput:focus{ outline:none; border-bottom:1px solid var(--brass); }
+  .yearInput{ color:var(--brass); width:5.4em; cursor:text; }
+  .yearInput::-webkit-inner-spin-button, .yearInput::-webkit-outer-spin-button{
+    -webkit-appearance:none; margin:0;
+  }
+  .jump-row{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:6px;
+    margin-top:6px;
+    flex-wrap:wrap;
+  }
+  .today-jump{
+    font-family:var(--font-mono);
+    font-size:10.5px;
+    letter-spacing:0.06em;
+    color:var(--azure);
+    text-transform:uppercase;
+    cursor:pointer;
+    border-bottom:1px dotted var(--azure);
+  }
+  .today-jump:hover{ color:var(--parchment); }
+  .jump-or{
+    font-family:var(--font-mono);
+    font-size:10.5px;
+    color:var(--parchment-dim);
+    text-transform:uppercase;
+  }
+  .jdnJumpInput{
+    appearance:none;
+    background:transparent;
+    border:none;
+    border-bottom:1px dotted var(--azure);
+    color:var(--azure);
+    font-family:var(--font-mono);
+    font-size:10.5px;
+    letter-spacing:0.04em;
+    width:6.5em;
+    padding:0 0 1px;
+    cursor:text;
+  }
+  .jdnJumpInput::placeholder{ color:var(--parchment-dim); opacity:0.7; }
+  .jdnJumpInput:hover{ border-bottom-color:var(--parchment); }
+  .jdnJumpInput:focus{ outline:none; border-bottom:1px solid var(--brass); }
+  .jdnJumpInput::-webkit-inner-spin-button, .jdnJumpInput::-webkit-outer-spin-button{
+    -webkit-appearance:none; margin:0;
+  }
+
+  /* ---------- grid ---------- */
+  .weekdays{
+    display:grid;
+    grid-template-columns:repeat(7,1fr);
+    margin-bottom:6px;
+  }
+  .weekdays div{
+    text-align:center;
+    font-family:var(--font-mono);
+    font-size:10.5px;
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    color:var(--parchment-dim);
+    padding-bottom:6px;
+  }
+
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(7,1fr);
+    grid-auto-rows:1fr;
+    gap:1px;
+    background:var(--rule);
+    border:1px solid var(--rule);
+  }
+
+  .cell{
+    position:relative;
+    background:var(--panel);
+    min-height:104px;
+    min-width:0;
+    padding:6px 7px 8px;
+    display:flex;
+    flex-direction:column;
+    transition:background .15s;
+  }
+  .cell.out{ background:var(--ink); }
+  .cell.out .daynum{ color:var(--out-daynum); }
+  .cell.today{
+    background:var(--panel-2);
+    box-shadow: inset 0 0 0 1px var(--brass);
+  }
+
+  .cellhead{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+  }
+  .daynum{
+    font-size:17px;
+    color:var(--parchment);
+  }
+  .cell.today .daynum{
+    color:var(--brass);
+    font-weight:bold;
+  }
+  .jdn{
+    font-family:var(--font-mono);
+    font-size:9px;
+    color:var(--azure);
+    opacity:0.75;
+    letter-spacing:0.02em;
+    margin-top:2px;
+  }
+  .cell.out .jdn{ opacity:0.35; }
+
+  .moon{
+    font-size:13px;
+    line-height:1;
+    margin-left:4px;
+  }
+
+  .tags{
+    margin-top:auto;
+    display:flex;
+    flex-direction:column;
+    gap:2px;
+    min-width:0;
+  }
+  .tag{
+    font-size:10.5px;
+    line-height:1.3;
+    letter-spacing:0.01em;
+  }
+  .tag.holiday{ color:var(--brass); font-style:italic; overflow-wrap:break-word; word-break:break-word; }
+  .tag.moonlabel{ color:var(--azure); font-family:var(--font-mono); text-transform:uppercase; letter-spacing:0.05em;}
+  .tag.season{ color:var(--azure); font-family:var(--font-mono); letter-spacing:0.02em; }
+  .tag.appt{
+    color:var(--parchment);
+    font-family:var(--font-mono);
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .tag.appt b{ color:var(--azure); font-weight:normal; margin-right:4px; }
+  .tag.appt.recurring{ color:var(--parchment-dim); font-style:italic; }
+  .tag.note{
+    color:var(--parchment-dim);
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .tag.more{ color:var(--brass-dim); font-family:var(--font-mono); }
+
+  .cell{ cursor:pointer; }
+  .cell:hover{ background:var(--panel-2); }
+  .cell.out:hover{ background:var(--out-hover-bg); }
+
+  .dot{
+    width:5px; height:5px; border-radius:50%;
+    background:var(--brass);
+    display:inline-block;
+    margin-left:5px;
+    position:relative; top:-1px;
+  }
+
+  /* ---------- day editor overlay ---------- */
+  .overlay{
+    position:fixed; inset:0;
+    background:var(--overlay-scrim);
+    display:flex; align-items:center; justify-content:center;
+    z-index:50;
+    padding:16px;
+  }
+  .overlay[hidden]{ display:none; }
+
+  .daypanel{
+    background:var(--panel);
+    border:1px solid var(--rule);
+    border-top:3px solid var(--brass);
+    width:100%; max-width:460px;
+    max-height:88vh;
+    overflow-y:auto;
+    padding:20px 22px 18px;
+  }
+  .dp-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    border-bottom:1px solid var(--rule);
+    padding-bottom:12px;
+    margin-bottom:16px;
+  }
+  .dp-date{ font-size:20px; color:var(--parchment); }
+  .dp-jdn{
+    font-family:var(--font-mono);
+    font-size:10.5px;
+    color:var(--azure);
+    margin-top:3px;
+  }
+  .dp-holiday{
+    font-size:11px;
+    font-style:italic;
+    color:var(--brass);
+    margin-top:5px;
+  }
+  .dp-season{
+    font-size:10.5px;
+    font-family:var(--font-mono);
+    color:var(--azure);
+    margin-top:4px;
+  }
+  .dp-moon{
+    font-size:10.5px;
+    font-family:var(--font-mono);
+    color:var(--azure);
+    margin-top:4px;
+  }
+  .dp-close{
+    appearance:none; background:transparent; border:none;
+    color:var(--parchment-dim);
+    font-size:22px; line-height:1; cursor:pointer;
+    padding:0 0 0 12px;
+  }
+  .dp-close:hover{ color:var(--parchment); }
+
+  .dp-section{ margin-bottom:18px; }
+  .dp-section label{
+    display:block;
+    font-family:var(--font-mono);
+    font-size:10px;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    color:var(--parchment-dim);
+    margin-bottom:8px;
+  }
+
+  .apptrow{
+    margin-bottom:10px;
+    padding-bottom:8px;
+    border-bottom:1px dotted var(--rule);
+  }
+  .apptrow-controls{
+    display:flex; gap:6px;
+    align-items:center;
+    flex-wrap:wrap;
+    margin-bottom:6px;
+  }
+  .apptrow input[type=time]{
+    flex:0 0 92px;
+    background:var(--ink);
+    border:1px solid var(--rule);
+    color:var(--parchment);
+    font-family:var(--font-mono);
+    font-size:12px;
+    padding:6px 6px;
+  }
+  .apptrow input[type=time]:disabled{ opacity:0.4; }
+  .allDayLabel{
+    display:flex;
+    align-items:center;
+    gap:4px;
+    font-family:var(--font-mono);
+    font-size:10px;
+    color:var(--parchment-dim);
+    cursor:pointer;
+    white-space:nowrap;
+  }
+  .allDayLabel input[type=checkbox]{ accent-color:var(--brass); cursor:pointer; }
+  .repeatSelect{
+    background:var(--ink);
+    border:1px solid var(--rule);
+    color:var(--azure);
+    font-family:var(--font-mono);
+    font-size:10.5px;
+    padding:5px 4px;
+  }
+  .repeatSelect:focus{ outline:none; border-color:var(--brass); }
+  .apptrow input[type=text].apptrow-text{
+    width:100%;
+    background:var(--ink);
+    border:1px solid var(--rule);
+    color:var(--parchment);
+    font-family:var(--font-serif);
+    font-size:13px;
+    padding:6px 8px;
+  }
+  .apptrow input:focus, textarea:focus{
+    outline:none; border-color:var(--brass);
+  }
+  .apptrow .rm{
+    appearance:none; background:transparent; border:none;
+    color:var(--parchment-dim);
+    font-size:16px; cursor:pointer; padding:2px 4px;
+    margin-left:auto;
+  }
+  .apptrow .rm:hover{ color:var(--danger); }
+
+  .recurring-row{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    background:var(--panel-2);
+    padding:8px 10px;
+    border-bottom:none;
+  }
+  .recurring-label{
+    flex:1 1 auto;
+    font-size:12px;
+    color:var(--parchment-dim);
+  }
+  .recurring-label b{ color:var(--azure); }
+  .recurring-label i{ color:var(--parchment-dim); font-style:italic; opacity:0.8; }
+  .recurring-row .rm{ margin-left:0; font-size:13px; }
+
+  .dp-add{
+    appearance:none;
+    background:transparent;
+    border:1px dashed var(--rule);
+    color:var(--azure);
+    font-family:var(--font-mono);
+    font-size:11px;
+    padding:6px 10px;
+    cursor:pointer;
+    margin-top:2px;
+  }
+  .dp-add:hover{ border-color:var(--azure); }
+
+  #dpNotes{
+    width:100%;
+    min-height:90px;
+    resize:vertical;
+    background:var(--ink);
+    border:1px solid var(--rule);
+    color:var(--parchment);
+    font-family:var(--font-serif);
+    font-size:13.5px;
+    line-height:1.5;
+    padding:10px;
+  }
+
+  .dp-foot{
+    text-align:right;
+    font-family:var(--font-mono);
+    font-size:10px;
+    color:var(--parchment-dim);
+    opacity:0;
+    transition:opacity .25s;
+  }
+  .dp-foot.show{ opacity:1; }
+
+  /* ---------- footer ---------- */
+  footer{
+    margin-top:26px;
+    padding-top:14px;
+    border-top:1px solid var(--rule);
+    display:flex;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:10px;
+    font-family:var(--font-mono);
+    font-size:10.5px;
+    color:var(--parchment-dim);
+  }
+  footer .legend span{ margin-right:14px; }
+  footer .legend b{ color:var(--brass); }
+  #reformNote{ display:flex; align-items:center; gap:4px; flex-wrap:wrap; }
+  #correctionSelect{
+    appearance:none;
+    background:transparent;
+    border:none;
+    border-bottom:1px dotted var(--parchment-dim);
+    color:var(--brass);
+    font-family:var(--font-mono);
+    font-size:10.5px;
+    padding:0 0 1px;
+    cursor:pointer;
+  }
+  #correctionSelect:hover{ border-bottom-color:var(--brass); }
+  #correctionSelect:focus{ outline:none; border-bottom:1px solid var(--brass); }
+  .prolepticLink{
+    color:var(--azure);
+    text-decoration:none;
+    border-bottom:1px dotted var(--azure);
+    cursor:help;
+  }
+  .prolepticLink:hover{ color:var(--parchment); border-bottom-color:var(--parchment); }
+
+  .dropzone-overlay{
+    position:fixed;
+    inset:0;
+    background:var(--overlay-scrim);
+    z-index:100;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    pointer-events:none;
+  }
+  .dropzone-overlay[hidden]{ display:none; }
+  .dropzone-inner{
+    border:2px dashed var(--brass);
+    color:var(--brass);
+    background:var(--panel);
+    font-family:var(--font-mono);
+    font-size:14px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    padding:36px 52px;
+    text-align:center;
+  }
+
+  @media (max-width:640px){
+    .navbar{ gap:6px; }
+    .navbtn{ width:24px; height:24px; font-size:12px; }
+    .navbtn-year{ font-size:10px; }
+    .cell{ min-height:74px; padding:5px; }
+    .tag.note{ display:none; }
+    .tag.holiday{ font-size:9.5px; white-space:normal; }
+    .tag.appt{ font-size:9.5px; }
+    .daynum{ font-size:14px; }
+    .monthtitle{ min-width:0; }
+    .datepicker{ gap:8px; }
+    .picker-group{ gap:4px; }
+    .monthSelect{ font-size:16px; }
+    .yearInput{ font-size:16px; width:4.4em; }
+    .today-jump{ font-size:9px; }
+    .epoch-note{ font-size:9.5px; text-align:left; }
+    .month-span-note{ font-size:9.5px; }
+    .daypanel{ max-width:100%; }
+  }
+</style>
+</head>
+<body>
+
+<div class="stage">
+
+  <header class="top">
+    <div class="brand">Kalends<small>a perpetual almanac, reckoned in Julian Day Numbers</small></div>
+    <div class="epoch-note" id="epochNote"></div>
+  </header>
+
+  <div class="navbar">
+    <div class="monthtitle">
+      <div class="datepicker">
+        <div class="picker-group">
+          <button class="navbtn" id="prevBtn" title="Previous month">&lsaquo;</button>
+          <button class="navbtn" id="nextBtn" title="Next month">&rsaquo;</button>
+        </div>
+        <select id="gotoMonth" class="monthSelect"></select>
+        <input type="number" id="gotoYear" class="yearInput" inputmode="numeric" min="-4712">
+        <div class="picker-group">
+          <button class="navbtn navbtn-year" id="prevYearBtn" title="Previous year">&laquo;</button>
+          <button class="navbtn navbtn-year" id="nextYearBtn" title="Next year">&raquo;</button>
+        </div>
+      </div>
+      <div class="jump-row">
+        <span class="today-jump" id="todayJump">jump to today</span>
+        <span class="jump-or">or</span>
+        <input type="number" id="jdnJump" class="jdnJumpInput" placeholder="JDN" inputmode="numeric">
+      </div>
+    </div>
+  </div>
+
+  <div class="weekdays" id="weekdays"></div>
+  <div class="grid" id="grid"></div>
+
+  <div class="overlay" id="overlay" hidden>
+    <div class="daypanel" id="daypanel">
+      <div class="dp-head">
+        <div>
+          <div class="dp-date" id="dpDate"></div>
+          <div class="dp-jdn" id="dpJdn"></div>
+          <div class="dp-holiday" id="dpHoliday"></div>
+          <div class="dp-season" id="dpSeason"></div>
+          <div class="dp-moon" id="dpMoon"></div>
+        </div>
+        <button class="dp-close" id="dpClose" title="Close">&times;</button>
+      </div>
+
+      <div class="dp-section">
+        <label>Appointments</label>
+        <div id="apptList"></div>
+        <button class="dp-add" id="apptAdd">+ add appointment</button>
+      </div>
+
+      <div class="dp-section">
+        <label>Notes</label>
+        <textarea id="dpNotes" placeholder="Anything to remember about this day&hellip;"></textarea>
+      </div>
+
+      <div class="dp-foot" id="dpSaved">saved</div>
+    </div>
+  </div>
+
+  <div class="databar">
+    <button id="exportTxtBtn" type="button">export .txt</button>
+    <button id="exportIcsBtn" type="button">export .ics</button>
+    <button id="importTxtBtn" type="button">import .txt</button>
+    <input type="file" id="importFileTxt" accept=".txt,text/plain" hidden>
+    <button id="importIcsBtn" type="button">import .ics</button>
+    <input type="file" id="importFileIcs" accept=".ics,.ical,text/calendar" hidden>
+    <span class="databar-sep"></span>
+    <div class="zoomgroup">
+      <button id="zoomOutBtn" type="button" title="Smaller text">A&minus;</button>
+      <button id="zoomResetBtn" type="button" title="Reset text size">100%</button>
+      <button id="zoomInBtn" type="button" title="Larger text">A+</button>
+    </div>
+    <span class="databar-sep"></span>
+    <div class="remindergroup">
+      <label class="remLabel" for="remindersToggle">
+        <input type="checkbox" id="remindersToggle"> remind
+      </label>
+      <input type="number" id="remindLeadInput" min="1" max="180" value="15">
+      <span class="remLabel">min before</span>
+    </div>
+    <span class="databar-status" id="importStatus"></span>
+  </div>
+
+  <div class="reminder-toast" id="reminderToast" hidden></div>
+
+  <div class="month-span-note" id="monthSpanNote"></div>
+
+  <footer>
+    <div class="legend">
+      <span><b>JDN</b> = Julian Day Number, noon-to-noon count since 4713 BCE</span>
+      <span><b>&#9789; &#9790; &#9791; &#9792;</b> lunar phase</span>
+    </div>
+    <div id="reformNote">
+      <select id="correctionSelect">
+        <option value="gregorian">Gregorian</option>
+        <option value="english">English</option>
+      </select>
+      from <span id="reformDate">1582-10-15</span> &middot; Julian before that,
+      <a href="https://en.wikipedia.org/wiki/Proleptic_Julian_calendar" target="_blank" rel="noopener" class="prolepticLink"
+         title="Proleptic: a calendar's rules extended backward to dates before it actually existed. The Julian calendar was genuinely in use starting 45 BCE; before that, dates here are proleptic Julian.">proleptic</a>
+      before 45 BCE
+    </div>
+  </footer>
+
+  <div class="buildstamp">build 2026-08-16 12:21 UTC</div>
+
+</div>
+
+<div class="dropzone-overlay" id="dropOverlay" hidden>
+  <div class="dropzone-inner">Drop .txt or .ics file to import</div>
+</div>
+
+<script>
+/* =========================================================================
+   Core date math, ported from kalends.js (Thomas van Flandern integer
+   algorithm, Computer Language Feb 1993), plus Gauss's Easter rule and
+   the Rosh Hashanah / lunar routines from the same library. The DOM/CGI
+   scaffolding from the original file has been dropped; only the
+   calendrical math survives, unaltered.
+   ========================================================================= */
+
+var cGDY1 = 1582, cGDM1 = 10, cGDD1 = 15, cGDFIX = 10, cGREGORYDAY1 = 2299161;
+var aGDY1 = 1752, aGDM1 = 9,  aGDD1 = 14, aGDFIX = 11, aGREGORYDAY1 = 2361222;
+var GDY1 = cGDY1, GDM1 = cGDM1, GDD1 = cGDD1, GDFIX = cGDFIX, GREGORYDAY1 = cGREGORYDAY1;
+var correctionMode = 'gregorian'; // 'gregorian' (Catholic/European, 1582-10-15) or 'english' (Anglo-American, 1752-09-14)
+
+function setCorrection(mode){
+  correctionMode = (mode === 'english') ? 'english' : 'gregorian';
+  if (correctionMode === 'english'){
+    GDY1 = aGDY1; GDM1 = aGDM1; GDD1 = aGDD1; GDFIX = aGDFIX; GREGORYDAY1 = aGREGORYDAY1;
+  } else {
+    GDY1 = cGDY1; GDM1 = cGDM1; GDD1 = cGDD1; GDFIX = cGDFIX; GREGORYDAY1 = cGREGORYDAY1;
+  }
+}
+
+function LeapYear(y){
+  if (y > GDY1) return ((y % 4 === 0) && ((y % 4000 !== 0) && ((y % 100 !== 0) || (y % 400 === 0)))) ? 1 : 0;
+  return (Math.abs(y) % 4 === 0) ? 1 : 0;
+}
+function EndOfMonth(y,m){
+  var d = 30;
+  d += ((m < 8) && ((m & 1) === 1));
+  d += ((m > 7) && ((m & 1) === 0));
+  d -= (m === 2);
+  d -= ((m === 2) && (LeapYear(y) === 0));
+  return d;
+}
+function ToJul(y,m,d){
+  var j=0,n=0,r=0;
+  if (y < GDY1) {
+    j = Math.floor((y+4712)/4)*1461;
+    n = ((y+4712)%4)*365;
+    if (n) j += n+1;
+    var doy = d; for (var i=1;i<m;i++) doy += EndOfMonth(y,i);
+    j += (doy - 1);
+  } else {
+    n = Math.ceil((m-14)/12);
+    j = d - 32075;
+    r = Math.floor(1461*(y+4800+n)/4); j += r;
+    r = Math.floor((367*(m-2-(n*12)))/12); j += r;
+    r = Math.floor(3*Math.floor((y+4900+n)/100)/4); j -= r;
+    if (j < (GREGORYDAY1 - GDFIX)) j += GDFIX;
+  }
+  return j;
+}
+function FromJul(j){
+  var t1,t2,ly,y,m,d,i,n;
+  if (j < GREGORYDAY1){
+    t1 = j + 1095;
+    y  = Math.floor(t1/1461)*4;
+    t2 = t1 % 1461;
+    ly = Math.floor(t2/365);
+    if (ly === 4) ly--;
+    d  = t2 - (ly*365) + 1;
+    y += ly; y -= 4715;
+    for (i=1;i<12;i++){ if ((n=EndOfMonth(y,i)) >= d) break; d -= n; }
+    m = i;
+  } else {
+    t1 = j + 68569;
+    var t2b = Math.floor(4*t1/146097);
+    t1 = t1 - Math.floor((146097*t2b+3)/4);
+    ly = Math.floor(4000*(t1+1)/1461001);
+    t1 = t1 - Math.floor(1461*ly/4) + 31;
+    var lm = Math.floor(80*t1/2447);
+    d = t1 - Math.floor(2447*lm/80);
+    var t1c = Math.floor(lm/11);
+    m = lm + 2 - 12*t1c;
+    ly += t1c + (t2b-49)*100;
+    y = ly - (ly < 1 ? 1 : 0);
+  }
+  return {y:y, m:m, d:d};
+}
+function Quotient(x,y){ var q = x/y; return q > 0 ? Math.floor(q) : Math.ceil(q); }
+function Remainder(x,y){ return x - (y*Math.floor(x/y)); }
+
+// Gauss/Meeus Easter
+function Easter(year){
+  var a=year%19, b=Quotient(year,100), c=Remainder(year,100),
+      z=Quotient(b,4), e=Remainder(b,4), g=Quotient((8*b+13),25),
+      h=Remainder((19*a+b-z-g+15),30), u=Quotient((a+11*h),319),
+      i=Quotient(c,4), k=Remainder(c,4),
+      x=Remainder((2*e+2*i-k-h+u+32),7),
+      m=Quotient((h-u+x+90),25),
+      d=Remainder((h-u+x+m+19),32);
+  return ToJul(year,m,d);
+}
+function GoodFriday(year){ return Easter(year)-2; }
+function AshWednesday(year){ return Easter(year)-46; }
+
+// Rosh Hashanah (Bill Gosper / UT Austin algorithm, as in kalends.js)
+function RoshHashanah(year){
+  var y=year, c=Math.floor(y/100), G=Remainder(y,19)+1, r=Remainder(12*G,19);
+  var N = (Math.floor(y/100) - Math.floor(y/400)) - 2
+        + (765433/492480)*r
+        + (Remainder(y,4)/4)
+        - ((313*y + 89081)/98496);
+  var f = N - Math.floor(N);
+  var j = ToJul(year,8,31) + Math.floor(N);
+  var w = j % 7;
+  if (w===2 || w===4 || w===6) j++;
+  else if (w===0 && r>11 && f>=0.898) j++;
+  else if (w===1 && r>6 && f>=0.633) j+=2;
+  return j;
+}
+function YomKippur(year){ return RoshHashanah(year)+9; }
+function Passover(year){ return RoshHashanah(year)-163; }
+function Purim(year){ return RoshHashanah(year)-193; }
+function Chanukah(year){
+  var r1=RoshHashanah(year), r2=RoshHashanah(year+1);
+  return ((r2-r1)%5===0) ? r1+84 : r1+83;
+}
+
+/* Orthodox (Julian-calendar) Easter, per Meeus's Julian Easter algorithm.
+   The Orthodox Church still dates Easter by the Julian calendar, so the
+   resulting date must be converted to a JDN using pure Julian-calendar
+   rules -- NOT this app's Gregorian/English correction setting, which is
+   irrelevant here regardless of year. Verified against published Orthodox
+   Easter dates 2023-2027 (all matched). */
+function julianLeapYear(y){ return (Math.abs(y) % 4 === 0) ? 1 : 0; }
+function julianEndOfMonth(y, m){
+  var d = 30;
+  d += ((m < 8) && ((m & 1) === 1));
+  d += ((m > 7) && ((m & 1) === 0));
+  d -= (m === 2);
+  d -= ((m === 2) && (julianLeapYear(y) === 0));
+  return d;
+}
+function julianToJDN(y, m, d){
+  var j = Math.floor((y+4712)/4)*1461;
+  var n = ((y+4712)%4)*365;
+  if (n) j += n+1;
+  var doy = d;
+  for (var i=1;i<m;i++) doy += julianEndOfMonth(y,i);
+  return j + (doy - 1);
+}
+function OrthodoxEaster(year){
+  var a = year % 4, b = year % 7, c = year % 19;
+  var d = (19*c + 15) % 30;
+  var e = (2*a + 4*b - d + 34) % 7;
+  var month = Math.floor((d + e + 114) / 31);
+  var day = ((d + e + 114) % 31) + 1;
+  return julianToJDN(year, month, day);
+}
+
+/* Tabular (arithmetic/"civil") Islamic calendar, 30-year cycle with 11
+   leap years. This is a legitimate, deterministic calendar system in its
+   own right -- but it is NOT the same as the moon-sighting-based Hijri
+   calendar most Islamic countries actually use for religious observance,
+   which can differ by a day or two depending on lunar visibility. Labeled
+   "(tabular)" in the UI for that reason. Verified epoch 1948440 = 1 Muharram
+   1 AH; round-tripped correctly against 2023 and 2027 real-world dates
+   (2024-2026 differed by exactly 1 day, consistent with the sighting-vs-
+   arithmetic gap, not a bug in the formula itself). */
+function islamicToJDN(y, m, d){
+  return d + Math.ceil(29.5*(m-1)) + (y-1)*354 + Math.floor((3+11*y)/30) + 1948440 - 1;
+}
+function islamicNewYearsForRange(jStart, jEnd){
+  var out = {};
+  var yStart = FromJul(jStart).y, yEnd = FromJul(jEnd).y;
+  for (var gy = yStart - 1; gy <= yEnd + 1; gy++){
+    var approxH = Math.round((gy - 622) * 1.030684);
+    for (var h = approxH - 1; h <= approxH + 1; h++){
+      var jd = islamicToJDN(h, 1, 1);
+      if (jd >= jStart && jd <= jEnd) out[jd] = 'Islamic New Year (tabular, ' + h + ' AH)';
+    }
+  }
+  return out;
+}
+
+/* ---- lunar phase (Meeus/Walker, as in kalends.js) ---- */
+var synmonth = 29.53058868;
+var EPOCH = 2451543.5; // 1999 Dec 31.0 -- reference epoch for positionSun()
+var PI = Math.PI;
+function fixangle(a){ return a - 360*Math.floor(a/360); }
+function torad(d){ return d*(PI/180); }
+function dsin(x){ return Math.sin(torad(x)); }
+function dcos(x){ return Math.cos(torad(x)); }
+
+function j2utc(td){
+  td += 0.5;
+  var z = Math.floor(td), f = td - z, a, alpha;
+  if (z < GREGORYDAY1) a = z;
+  else { alpha = Math.floor((z-1867216.25)/36524.25); a = z+1+alpha-Math.floor(alpha/4); }
+  var b = a+1524, c = Math.floor((b-122.1)/365.25), d = Math.floor(365.25*c),
+      e = Math.floor((b-d)/30.6001);
+  var ij = Math.floor((f*86400)+0.5);
+  return { hour: Math.floor(ij/3600), min: Math.floor(ij/60)%60 };
+}
+function MeanPhase(sdate,k){
+  var t=(sdate-2415020.0)/36525, t2=t*t, t3=t2*t;
+  return 2415020.75933 + synmonth*k + 0.0001178*t2 - 0.000000155*t3
+       + 0.00033*dsin(166.56+132.87*t-0.009173*t2);
+}
+function TruePhase(k,phase){
+  k += phase;
+  var t=k/1236.85, t2=t*t, t3=t2*t;
+  var pt = 2415020.75933 + synmonth*k + 0.0001178*t2 - 0.000000155*t3
+          + 0.00033*dsin(166.56+132.87*t-0.009173*t2);
+  var m = 359.2242 + 29.10535608*k - 0.0000333*t2 - 0.00000347*t3;
+  var mprime = 306.0253 + 385.81691806*k + 0.0107306*t2 + 0.00001236*t3;
+  var f = 21.2964 + 390.67050646*k - 0.0016528*t2 - 0.00000239*t3;
+  if (phase < 0.01 || Math.abs(phase-0.5) < 0.01){
+    pt += (0.1734-0.000393*t)*dsin(m) + 0.0021*dsin(2*m) - 0.4068*dsin(mprime)
+        + 0.0161*dsin(2*mprime) - 0.0004*dsin(3*mprime) + 0.0104*dsin(2*f)
+        - 0.0051*dsin(m+mprime) - 0.0074*dsin(m-mprime) + 0.0004*dsin(2*f+m)
+        - 0.0004*dsin(2*f-m) - 0.0006*dsin(2*f+mprime) + 0.0010*dsin(2*f-mprime)
+        + 0.0005*dsin(m+2*mprime);
+  } else if (Math.abs(phase-0.25)<0.01 || Math.abs(phase-0.75)<0.01){
+    pt += (0.1721-0.0004*t)*dsin(m) + 0.0021*dsin(2*m) - 0.6280*dsin(mprime)
+        + 0.0089*dsin(2*mprime) - 0.0004*dsin(3*mprime) + 0.0079*dsin(2*f)
+        - 0.0119*dsin(m+mprime) - 0.0047*dsin(m-mprime) + 0.0003*dsin(2*f+m)
+        - 0.0004*dsin(2*f-m) - 0.0006*dsin(2*f+mprime) + 0.0021*dsin(2*f-mprime)
+        + 0.0003*dsin(m+2*mprime) + 0.0004*dsin(m-2*mprime) - 0.0003*dsin(2*m+mprime);
+    pt += (phase < 0.5) ? (0.0028 - 0.0004*dcos(m) + 0.0003*dcos(mprime))
+                         : (-0.0028 + 0.0004*dcos(m) - 0.0003*dcos(mprime));
+  }
+  return pt;
+}
+function PhaseHunt(sdate){
+  var adate = sdate - 45;
+  var y0 = FromJul(Math.floor(adate));
+  var k1 = Math.floor((y0.y + ((y0.m-1)*(1/12)) - 1900) * 12.3685);
+  var nt1 = MeanPhase(adate,k1), k2, nt2;
+  while (true){
+    adate += synmonth;
+    k2 = k1+1;
+    nt2 = MeanPhase(adate,k2);
+    if (nt1 <= sdate && nt2 > sdate) break;
+    nt1 = nt2; k1 = k2;
+  }
+  return [
+    TruePhase(k1,0.0), TruePhase(k1,0.25), TruePhase(k1,0.5), TruePhase(k1,0.75),
+    TruePhase(k2,0.0), TruePhase(k2,0.25), TruePhase(k2,0.5), TruePhase(k2,0.75)
+  ];
+}
+
+/* Low-precision solar ecliptic longitude and season (equinox/solstice)
+   finder, ported from kalends.js's positionSun()/eccentric_anomaly(). Good
+   to within roughly an hour -- plenty for a calendar, not an ephemeris. */
+function eccentric_anomaly(M, e){
+  var E = M, delta;
+  do {
+    delta = E - e * Math.sin(E) - M;
+    E -= delta / (1 - e * Math.cos(E));
+  } while (Math.abs(delta) >= 1e-9);
+  return E;
+}
+function positionSun(jd){
+  var d = jd - EPOCH;
+  var w = 282.9404 + 4.70935e-5 * d;
+  var e = 0.016709 - 1.151e-9 * d;
+  var M = 356.0470 + 0.9856002585 * d;
+  var E = eccentric_anomaly(M * PI/180.0, e);
+  var x = Math.cos(E) - e;
+  var y = Math.sin(E) * Math.sqrt(1.0 - e*e);
+  var v = Math.atan2(y, x) * 180.0 / PI;
+  return (v + w) - 360.0 * Math.floor((v + w) / 360.0);
+}
+var SEASON_NAME = ['Spring Equinox','Summer Solstice','Fall Equinox','Winter Solstice'];
+function seasonChangeJDN(year, qtr){
+  // qtr: 0=Mar equinox, 1=Jun solstice, 2=Sep equinox, 3=Dec solstice
+  var month = qtr * 3 + 3;
+  var dj = ToJul(year, month, 1) + 21; // seed near the expected date
+  var qp = 90 * qtr;
+  for (var i = 0; i < 4; i++){
+    var ps = positionSun(dj); if (ps > 300) ps -= 360;
+    var delta = (ps > qp ? ps - qp : -(qp - ps)) * (365.25 / 360);
+    dj -= delta;
+  }
+  return dj; // fractional JDN -- includes time of day
+}
+function seasonsForRange(jStart, jEnd){
+  var out = {};
+  var yStart = FromJul(jStart).y, yEnd = FromJul(jEnd).y;
+  for (var y = yStart - 1; y <= yEnd + 1; y++){
+    for (var q = 0; q < 4; q++){
+      var dj = seasonChangeJDN(y, q);
+      var jd = Math.round(dj);
+      if (jd >= jStart && jd <= jEnd){
+        var u = new j2utc(dj);
+        out[jd] = { label: SEASON_NAME[q], time: pad(u.hour,2) + ':' + pad(u.min,2) + ' UTC' };
+      }
+    }
+  }
+  return out;
+}
+
+/* =========================================================================
+   Federal holidays -- fixed and floating ("nth weekday") rules
+   ========================================================================= */
+var DOW_SU=0,DOW_MO=1,DOW_TU=2,DOW_WE=3,DOW_TH=4,DOW_FR=5,DOW_SA=6;
+
+function nthWeekdayOfMonth(year,month,weekday,n){
+  // n>0: nth occurrence from start; n<0: from end (-1 = last)
+  var first = ToJul(year,month,1);
+  var firstDow = ((first % 7) + 1) % 7; // Sun=0, verified against known dates
+  if (n > 0){
+    var delta = (weekday - firstDow + 7) % 7;
+    return first + delta + (n-1)*7;
+  } else {
+    var lastDay = EndOfMonth(year,month);
+    var last = ToJul(year,month,lastDay);
+  var lastDow = ((last % 7) + 1) % 7;
+    var delta2 = (lastDow - weekday + 7) % 7;
+    return last - delta2 + (n+1)*7;
+  }
+}
+function fixedDate(year,month,day){ try { return ToJul(year,month,day); } catch(e){ return -1; } }
+
+/* ISO 8601 week number: weeks start Monday, week 1 is the week containing
+   the year's first Thursday. Anchoring on the Thursday of each date's own
+   week (rather than the date itself) sidesteps the usual year-boundary
+   edge cases -- the Thursday always belongs to the correct ISO year. */
+function isoWeekInfo(jd){
+  var sunDow = ((jd % 7) + 1) % 7;      // Sun=0..Sat=6
+  var isoDow = sunDow === 0 ? 7 : sunDow; // Mon=1..Sun=7
+  var thursdayJD = jd - isoDow + 4;
+  var isoYear = FromJul(thursdayJD).y;
+  var week = Math.floor((thursdayJD - ToJul(isoYear, 1, 1)) / 7) + 1;
+  return { year: isoYear, week: week };
+}
+
+/* Repeating appointments: no stored year or pattern table -- the rule is
+   derived live from the day the appointment was created on, the same way
+   the original library derived "4th Thursday" from Thanksgiving's own
+   seed date rather than storing it. An appointment on day J with
+   repeat.freq='monthlyWeekday' just means "whatever weekday-of-month J
+   happens to be, every month" -- computed via the same nthWeekdayOfMonth
+   already used for the federal holidays. */
+function repeatMatches(originJDN, freq, jd){
+  if (jd <= originJDN) return false; // recurs forward only; origin shows via its own real entry
+  var op = FromJul(originJDN);
+  var cp = FromJul(jd);
+  switch (freq){
+    case 'daily':   return true;
+    case 'weekly':  return ((jd - originJDN) % 7 === 0);
+    case 'monthly': return (cp.d === op.d);
+    case 'yearly':  return (cp.m === op.m && cp.d === op.d);
+    case 'monthlyWeekday':
+      var dow = ((originJDN % 7) + 1) % 7;
+      var n = Math.ceil(op.d / 7);
+      return (nthWeekdayOfMonth(cp.y, cp.m, dow, n) === jd);
+    case 'yearlyWeekday':
+      if (cp.m !== op.m) return false;
+      var dowY = ((originJDN % 7) + 1) % 7;
+      var nY = Math.ceil(op.d / 7);
+      return (nthWeekdayOfMonth(cp.y, cp.m, dowY, nY) === jd);
+    default: return false;
+  }
+}
+function repeatingApptsForRange(jStart, jEnd){
+  var out = {};
+  Object.keys(dayData).forEach(function(jdStr){
+    var originJDN = parseInt(jdStr, 10);
+    var day = dayData[jdStr];
+    if (!day || !day.appts) return;
+    day.appts.forEach(function(a, idx){
+      if (!a.repeat || !a.repeat.freq) return;
+      var lo = Math.max(jStart, originJDN + 1);
+      for (var jd = lo; jd <= jEnd; jd++){
+        if (repeatMatches(originJDN, a.repeat.freq, jd)){
+          if (!out[jd]) out[jd] = [];
+          out[jd].push({ originJDN: originJDN, idx: idx, time: a.time, text: a.text, allDay: a.allDay, freq: a.repeat.freq });
+        }
+      }
+    });
+  });
+  return out;
+}
+
+function pushHoliday(H,jd,name){
+  if (jd == null || jd < 0) return;
+  if (!H[jd]) H[jd] = [];
+  H[jd].push(name);
+}
+
+function observedFixedHoliday(H, year, month, day, name){
+  var jd = fixedDate(year, month, day);
+  if (jd < 0) return;
+  var dow = ((jd % 7) + 1) % 7; // 0=Sun..6=Sat
+  var label = name;
+  if (dow === 0){ jd += 1; label = name + ' (observed)'; }       // Sunday -> following Monday
+  else if (dow === 6){ jd -= 1; label = name + ' (observed)'; }  // Saturday -> preceding Friday
+  pushHoliday(H, jd, label);
+}
+function federalHolidays(year){
+  var H = {};
+  observedFixedHoliday(H, year,1,1,   "New Year's Day");
+  pushHoliday(H, nthWeekdayOfMonth(year,1,DOW_MO,3),  "MLK Day");
+  pushHoliday(H, nthWeekdayOfMonth(year,2,DOW_MO,3),  "Presidents Day");
+  pushHoliday(H, nthWeekdayOfMonth(year,5,DOW_MO,-1), "Memorial Day");
+  observedFixedHoliday(H, year,6,19,  "Juneteenth");
+  observedFixedHoliday(H, year,7,4,   "Independence Day");
+  pushHoliday(H, nthWeekdayOfMonth(year,9,DOW_MO,1),  "Labor Day");
+  pushHoliday(H, nthWeekdayOfMonth(year,10,DOW_MO,2), "Columbus Day");
+  observedFixedHoliday(H, year,11,11, "Veterans Day");
+  pushHoliday(H, nthWeekdayOfMonth(year,11,DOW_TH,4), "Thanksgiving");
+  observedFixedHoliday(H, year,12,25, "Christmas");
+  return H;
+}
+function religiousHolidays(year){
+  var H = {};
+  pushHoliday(H, Easter(year),        "Easter");
+  pushHoliday(H, GoodFriday(year),    "Good Friday");
+  pushHoliday(H, AshWednesday(year),  "Ash Wednesday");
+  pushHoliday(H, OrthodoxEaster(year),"Orthodox Easter");
+  pushHoliday(H, RoshHashanah(year),  "Rosh Hashanah");
+  pushHoliday(H, YomKippur(year),     "Yom Kippur");
+  pushHoliday(H, Passover(year),      "Passover");
+  pushHoliday(H, Purim(year),         "Purim");
+  pushHoliday(H, Chanukah(year),      "Chanukah");
+  return H;
+}
+function holidaysForRange(jStart,jEnd){
+  var out = {};
+  var yStart = FromJul(jStart).y, yEnd = FromJul(jEnd).y;
+  for (var y = yStart-1; y <= yEnd+1; y++){
+    var f = federalHolidays(y), r = religiousHolidays(y);
+    for (var k in f) if (k>=jStart && k<=jEnd) { if (!out[k]) out[k]=[]; out[k] = out[k].concat(f[k]); }
+    for (var k2 in r) if (k2>=jStart && k2<=jEnd) { if (!out[k2]) out[k2]=[]; out[k2] = out[k2].concat(r[k2]); }
+  }
+  var islamic = islamicNewYearsForRange(jStart, jEnd);
+  for (var k3 in islamic){
+    if (!out[k3]) out[k3] = [];
+    out[k3].push(islamic[k3]);
+  }
+  return out;
+}
+
+/* =========================================================================
+   Rendering
+   ========================================================================= */
+var MonthName = ['','January','February','March','April','May','June','July',
+                  'August','September','October','November','December'];
+var MonthAbbr = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+var DayAbbr = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+var MOON_GLYPH = ['\u{1F311}','\u{1F313}','\u{1F315}','\u{1F317}']; // new, Q1, full, Q3
+
+var todayNow = new Date();
+var todayJDN = ToJul(todayNow.getFullYear(), todayNow.getMonth()+1, todayNow.getDate());
+var viewY = todayNow.getFullYear();
+var viewM = todayNow.getMonth()+1;
+
+function buildWeekdayRow(){
+  var w = document.getElementById('weekdays');
+  w.innerHTML = '';
+  for (var i=0;i<7;i++){
+    var d = document.createElement('div');
+    d.textContent = DayAbbr[i];
+    w.appendChild(d);
+  }
+}
+
+function render(){
+  var firstOfMonth = ToJul(viewY, viewM, 1);
+  var firstDow = ((firstOfMonth % 7) + 1) % 7; // Sun=0, verified against known dates
+  var gridStart = firstOfMonth - firstDow;
+
+  var daysInMonth = EndOfMonth(viewY, viewM);
+  var lastOfMonth = firstOfMonth + daysInMonth - 1;
+  var lastDow = ((lastOfMonth % 7) + 1) % 7;
+  var trailing = 6 - lastDow;
+  var totalCells = firstDow + daysInMonth + trailing;
+  var weeksNeeded = Math.ceil(totalCells / 7);
+  var gridEnd = gridStart + weeksNeeded*7 - 1;
+
+  var holidays = holidaysForRange(gridStart, gridEnd);
+  var seasons = seasonsForRange(gridStart, gridEnd);
+  var repeating = repeatingApptsForRange(gridStart, gridEnd);
+  // Sample from both ends of the grid, not just the middle: PhaseHunt only
+  // covers 2 lunations around its anchor, and a single mid-grid anchor can
+  // miss a phase near either edge if that anchor has already rolled into
+  // an adjacent lunation. Merging both ends guarantees full coverage.
+  var rawPhases = PhaseHunt(gridStart).concat(PhaseHunt(gridEnd));
+  var MOON_LABEL = ['New Moon','First Quarter','Full Moon','Last Quarter'];
+  var phaseMap = {};
+  rawPhases.forEach(function(p, idx){
+    var jd = Math.round(p);
+    var u = new j2utc(p);
+    phaseMap[jd] = {
+      glyph: MOON_GLYPH[idx % 4],
+      label: MOON_LABEL[idx % 4],
+      time: pad(u.hour,2) + ':' + pad(u.min,2) + ' UTC'
+    };
+  });
+
+  var grid = document.getElementById('grid');
+  grid.innerHTML = '';
+
+  for (var i=0; i<weeksNeeded*7; i++){
+    var jd = gridStart + i;
+    var parts = FromJul(jd);
+    var isOut = (parts.m !== viewM);
+    var isToday = (jd === todayJDN);
+
+    var cell = document.createElement('div');
+    cell.className = 'cell' + (isOut ? ' out' : '') + (isToday ? ' today' : '');
+
+    var dayInfo = dayData[jd];
+    var apptList = (dayInfo && dayInfo.appts) ? dayInfo.appts.filter(function(a){ return a.text || a.time || a.allDay; }) : [];
+    var recurList = repeating[jd] || [];
+    var hasNote = !!(dayInfo && dayInfo.notes && dayInfo.notes.trim());
+    var hasAnything = apptList.length > 0 || recurList.length > 0 || hasNote;
+
+    var head = document.createElement('div');
+    head.className = 'cellhead';
+
+    var dn = document.createElement('div');
+    dn.className = 'daynum';
+    dn.textContent = parts.d;
+    if (phaseMap[jd]) {
+      var moonSpan = document.createElement('span');
+      moonSpan.className = 'moon';
+      moonSpan.textContent = phaseMap[jd].glyph;
+      dn.appendChild(moonSpan);
+    }
+    if (hasAnything){
+      var dot = document.createElement('span');
+      dot.className = 'dot';
+      dn.appendChild(dot);
+    }
+    head.appendChild(dn);
+    cell.appendChild(head);
+
+    var tags = document.createElement('div');
+    tags.className = 'tags';
+    if (holidays[jd]){
+      holidays[jd].forEach(function(name){
+        var htag = document.createElement('div');
+        htag.className = 'tag holiday';
+        htag.textContent = name;
+        tags.appendChild(htag);
+      });
+    }
+    if (seasons[jd]){
+      var stag = document.createElement('div');
+      stag.className = 'tag season';
+      stag.textContent = seasons[jd].label;
+      tags.appendChild(stag);
+    }
+    var displayAppts = apptList.map(function(a){ return { time:a.time, text:a.text, allDay:a.allDay, recurring:false }; })
+      .concat(recurList.map(function(r){ return { time:r.time, text:r.text, allDay:r.allDay, recurring:true }; }));
+    displayAppts.slice(0,2).forEach(function(a){
+      var at = document.createElement('div');
+      at.className = 'tag appt' + (a.recurring ? ' recurring' : '');
+      var marker = a.recurring ? '\u21bb ' : '';
+      var timeLabel = a.allDay ? '<b>ALL DAY</b> ' : (a.time ? '<b>' + a.time + '</b>' : '');
+      at.innerHTML = marker + timeLabel + (a.text ? escapeHtml(a.text) : '');
+      tags.appendChild(at);
+    });
+    if (displayAppts.length > 2){
+      var more = document.createElement('div');
+      more.className = 'tag more';
+      more.textContent = '+' + (displayAppts.length - 2) + ' more';
+      tags.appendChild(more);
+    }
+    if (hasNote){
+      var nt = document.createElement('div');
+      nt.className = 'tag note';
+      nt.textContent = dayInfo.notes.trim();
+      tags.appendChild(nt);
+    }
+    cell.appendChild(tags);
+
+    (function(jdCopy, partsCopy, holCopy, moonCopy, seasonCopy, recurCopy){
+      cell.addEventListener('click', function(){ openDayPanel(jdCopy, partsCopy, holCopy, moonCopy, seasonCopy, recurCopy); });
+    })(jd, parts, holidays[jd] ? holidays[jd].join(' \u00b7 ') : '', phaseMap[jd] || null, seasons[jd] || null, recurList);
+
+    grid.appendChild(cell);
+  }
+
+  currentHolidays = holidays;
+
+  var gm = document.getElementById('gotoMonth');
+  var gy = document.getElementById('gotoYear');
+  if (gm && document.activeElement !== gm) gm.value = viewM;
+  if (gy && document.activeElement !== gy) gy.value = viewY;
+
+  var cs = document.getElementById('correctionSelect');
+  if (cs && document.activeElement !== cs) cs.value = correctionMode;
+
+  var rd = document.getElementById('reformDate');
+  if (rd) rd.textContent = GDY1 + '-' + pad(GDM1,2) + '-' + pad(GDD1,2);
+
+  document.getElementById('epochNote').innerHTML =
+    'today &middot; <b>JDN ' + todayJDN + '</b> &middot; <span id="liveClock"></span>';
+  updateClock();
+
+  var msn = document.getElementById('monthSpanNote');
+  if (msn){
+    var isoStart = isoWeekInfo(firstOfMonth);
+    var isoEnd = isoWeekInfo(lastOfMonth);
+    msn.textContent = 'month spans JDN ' + firstOfMonth + '\u2013' + lastOfMonth
+      + '  \u00b7  ISO weeks ' + pad(isoStart.week,2) + '\u2013' + pad(isoEnd.week,2);
+  }
+}
+
+function updateClock(){
+  var el = document.getElementById('liveClock');
+  if (!el) return;
+  var now = new Date();
+  el.textContent = pad(now.getHours(),2) + ':' + pad(now.getMinutes(),2);
+}
+
+function escapeHtml(s){
+  var d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+var EPOCH_FLOOR_YEAR = -4712; // JDN 0; the van Flandern algorithm isn't valid before this
+
+function clampView(){
+  if (viewY < EPOCH_FLOOR_YEAR){ viewY = EPOCH_FLOOR_YEAR; viewM = 1; }
+}
+
+function shiftMonth(delta){
+  var m = viewM - 1 + delta;
+  viewY += Math.floor(m/12);
+  viewM = ((m % 12) + 12) % 12 + 1;
+  clampView();
+  render();
+}
+
+function shiftYear(delta){
+  viewY += delta;
+  clampView();
+  render();
+}
+
+function goToMonthYear(){
+  var gm = document.getElementById('gotoMonth');
+  var gy = document.getElementById('gotoYear');
+  var m = parseInt(gm.value, 10);
+  var y = parseInt(gy.value, 10);
+  if (isNaN(m) || m < 1 || m > 12) m = viewM;
+  if (isNaN(y)) y = viewY;
+  viewM = m;
+  viewY = y;
+  clampView();
+  render();
+}
+
+function populateGotoMonth(){
+  var gm = document.getElementById('gotoMonth');
+  gm.innerHTML = '';
+  for (var i = 1; i <= 12; i++){
+    var opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = MonthName[i];
+    gm.appendChild(opt);
+  }
+}
+
+/* =========================================================================
+   Day data: appointments + free-text notes, keyed by JDN.
+   Persisted via the artifact storage API when available; falls back to
+   localStorage so the file also works if saved and opened as a plain
+   HTML file outside Claude.
+   ========================================================================= */
+var dayData = {};   // { "<jdn>": { notes: "", appts: [{time, text}] } }
+var currentHolidays = {};
+var activeJDN = null;
+var saveTimer = null;
+var STORAGE_KEY = 'kalends-day-data';
+var SETTINGS_KEY = 'kalends-settings';
+
+function hasStorageApi(){
+  return (typeof window !== 'undefined') && !!window.storage;
+}
+
+// Guards against a storage bridge that exists but never resolves or rejects
+// (seen in some restrictive preview contexts) -- without this, the initial
+// load would hang forever and the calendar would never render.
+function withTimeout(promise, ms){
+  return new Promise(function(resolve){
+    var settled = false;
+    var timer = setTimeout(function(){
+      if (!settled){ settled = true; resolve(null); }
+    }, ms);
+    promise.then(function(v){
+      if (!settled){ settled = true; clearTimeout(timer); resolve(v); }
+    }).catch(function(){
+      if (!settled){ settled = true; clearTimeout(timer); resolve(null); }
+    });
+  });
+}
+
+var zoomLevel = 1;
+var ZOOM_MIN = 0.6, ZOOM_MAX = 2.0, ZOOM_STEP = 0.1;
+
+function setZoom(z){
+  zoomLevel = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, Math.round(z * 100) / 100));
+  document.documentElement.style.setProperty('--zoom', zoomLevel);
+  var rb = document.getElementById('zoomResetBtn');
+  if (rb) rb.textContent = Math.round(zoomLevel * 100) + '%';
+}
+
+var remindersOn = false;
+var remindLeadMin = 15;
+function setReminders(on, leadMin){
+  remindersOn = !!on;
+  if (typeof leadMin === 'number' && !isNaN(leadMin)) remindLeadMin = Math.max(1, Math.min(180, Math.round(leadMin)));
+  var cb = document.getElementById('remindersToggle');
+  var li = document.getElementById('remindLeadInput');
+  if (cb) cb.checked = remindersOn;
+  if (li) li.value = remindLeadMin;
+}
+
+function loadSettings(cb){
+  function apply(json){
+    if (json){
+      try {
+        var s = JSON.parse(json);
+        if (s && s.correction) setCorrection(s.correction);
+        if (s && typeof s.zoom === 'number') setZoom(s.zoom);
+        if (s) setReminders(!!s.remindersOn, s.remindLeadMin);
+      } catch(e){ /* no-op */ }
+    }
+    cb();
+  }
+  if (hasStorageApi()){
+    withTimeout(window.storage.get(SETTINGS_KEY, false), 900).then(function(res){
+      apply(res && res.value);
+    });
+  } else {
+    var raw = null;
+    try { raw = localStorage.getItem(SETTINGS_KEY); } catch(e){ /* no-op */ }
+    apply(raw);
+  }
+}
+
+function saveSettings(){
+  var json = JSON.stringify({
+    correction: correctionMode,
+    zoom: zoomLevel,
+    remindersOn: remindersOn,
+    remindLeadMin: remindLeadMin
+  });
+  if (hasStorageApi()){
+    window.storage.set(SETTINGS_KEY, json, false).catch(function(){});
+  } else {
+    try { localStorage.setItem(SETTINGS_KEY, json); } catch(e){ /* no-op */ }
+  }
+}
+
+function loadDayData(){
+  if (hasStorageApi()){
+    withTimeout(window.storage.get(STORAGE_KEY, false), 900).then(function(res){
+      if (res && res.value){ try { dayData = JSON.parse(res.value) || {}; } catch(e){ dayData = {}; } }
+      render();
+    });
+  } else {
+    try {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) dayData = JSON.parse(raw) || {};
+    } catch(e){ /* no-op */ }
+    render();
+  }
+}
+
+function saveDayData(){
+  var json = JSON.stringify(dayData);
+  if (hasStorageApi()){
+    window.storage.set(STORAGE_KEY, json, false).catch(function(){});
+  } else {
+    try { localStorage.setItem(STORAGE_KEY, json); } catch(e){ /* no-op */ }
+  }
+}
+
+function scheduleSave(){
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(function(){
+    saveDayData();
+    var el = document.getElementById('dpSaved');
+    if (el){
+      el.classList.add('show');
+      setTimeout(function(){ el.classList.remove('show'); }, 1000);
+    }
+  }, 350);
+}
+
+function getDay(jd){ return dayData[jd] || { notes:'', appts:[] }; }
+function ensureDay(jd){
+  if (!dayData[jd]) dayData[jd] = { notes:'', appts:[] };
+  if (!dayData[jd].appts) dayData[jd].appts = [];
+  return dayData[jd];
+}
+function pruneIfEmpty(jd){
+  var d = dayData[jd];
+  if (d && !(d.notes && d.notes.trim()) && (!d.appts || d.appts.length === 0)){
+    delete dayData[jd];
+  }
+}
+
+/* =========================================================================
+   Appointment reminders -- best effort, only while this page/tab is open.
+   No backend, no push notifications: just a periodic check comparing
+   wall-clock time to today's appointment times. Uses the real browser
+   Notification API when available and permitted; falls back to an
+   in-page toast otherwise (which also requires the tab to be open, so
+   it's consistent with the whole feature's limitation).
+   ========================================================================= */
+var remindedKeys = {};       // "jdn:idx" -> true, once notified, for this session
+var remindedForJDN = null;   // which JDN remindedKeys currently applies to
+var reminderToastTimer = null;
+
+function showReminderToast(title, body){
+  var el = document.getElementById('reminderToast');
+  if (!el) return;
+  el.innerHTML = '<b>' + escapeHtml(title) + '</b><br>' + escapeHtml(body);
+  el.hidden = false;
+  clearTimeout(reminderToastTimer);
+  reminderToastTimer = setTimeout(function(){ el.hidden = true; }, 10000);
+}
+
+function fireReminder(title, body){
+  // Always show the in-page toast -- it's the one path we can actually
+  // guarantee. Native notifications are attempted in addition, but some
+  // browsers (Firefox on Android, notably) can report permission as
+  // "granted" and then silently swallow the notification with no error,
+  // so treating it as an either/or fallback isn't reliable enough.
+  showReminderToast(title, body);
+  var canNotify = (typeof Notification !== 'undefined') && Notification.permission === 'granted';
+  if (canNotify){
+    try { new Notification(title, { body: body }); } catch(e){ /* toast already shown */ }
+  }
+}
+
+function checkReminders(){
+  if (!remindersOn) return;
+  var now = new Date();
+  var jd = ToJul(now.getFullYear(), now.getMonth()+1, now.getDate());
+  if (jd !== remindedForJDN){ remindedKeys = {}; remindedForJDN = jd; }
+  var day = dayData[jd];
+  if (!day || !day.appts || !day.appts.length) return;
+  day.appts.forEach(function(a, idx){
+    if (!a.time) return;
+    var parts = a.time.split(':');
+    var apptDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), parseInt(parts[0],10), parseInt(parts[1],10), 0, 0);
+    var diffMin = (apptDate.getTime() - now.getTime()) / 60000;
+    var key = jd + ':' + idx;
+    if (diffMin <= remindLeadMin && diffMin > -2 && !remindedKeys[key]){
+      remindedKeys[key] = true;
+      var when = diffMin <= 0 ? 'now' : ('in ' + Math.round(diffMin) + ' min');
+      fireReminder('Kalends reminder', (a.time) + ' \u2014 ' + (a.text || '(untitled)') + ' (' + when + ')');
+    }
+  });
+}
+
+/* =========================================================================
+   Import / export.
+
+   Custom text format, one record per line:
+     YYYYMMDDHHMI<text>
+   HHMI is the appointment's zero-padded hour+minute (e.g. 0930).
+   Two sentinel values cover the cases a clock time can't express:
+     8888  -- an appointment with no set time
+     9999  -- a free-text note for that day (not an appointment)
+   A bare YYYYMMDD<text> line (8 digits, no time) is also accepted on
+   import and treated the same as the 9999 note case, for compatibility
+   with the plainer date-tagged text lines this library's memos
+   originally used.
+
+   .ics export/import uses standard iCalendar: VEVENT for appointments
+   (DTSTART with a time, or VALUE=DATE for untimed ones) and VJOURNAL
+   for day notes.
+   ========================================================================= */
+
+function pad(n, w){
+  var s = '' + n;
+  var neg = s.charAt(0) === '-';
+  if (neg) s = s.substring(1);
+  while (s.length < w) s = '0' + s;
+  return (neg ? '-' : '') + s;
+}
+function stampForFilename(){
+  var d = new Date();
+  return d.getFullYear() + pad(d.getMonth()+1,2) + pad(d.getDate(),2);
+}
+function downloadBlob(content, filename, mime){
+  var blob = new Blob([content], { type: mime });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+}
+function showImportStatus(msg){
+  var el = document.getElementById('importStatus');
+  if (!el) return;
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(showImportStatus._t);
+  showImportStatus._t = setTimeout(function(){ el.classList.remove('show'); }, 3500);
+}
+
+/* ---- custom text format ---- */
+
+function exportText(){
+  var lines = [];
+  Object.keys(dayData).sort(function(a,b){ return a - b; }).forEach(function(jdStr){
+    var jd = parseInt(jdStr, 10);
+    var parts = FromJul(jd);
+    var dateStr = pad(parts.y,4) + pad(parts.m,2) + pad(parts.d,2);
+    var day = dayData[jdStr];
+    (day.appts || []).forEach(function(a){
+      if (!a.text && !a.time && !a.allDay) return;
+      var hhmi = (a.time && !a.allDay) ? a.time.replace(':','') : '8888';
+      lines.push(dateStr + hhmi + (a.text || ''));
+    });
+    if (day.notes && day.notes.trim()){
+      day.notes.split('\n').forEach(function(nline){
+        if (nline.trim()) lines.push(dateStr + '9999' + nline);
+      });
+    }
+  });
+  downloadBlob(lines.join('\n') + '\n', 'kalends-export-' + stampForFilename() + '.txt', 'text/plain');
+  showImportStatus('exported ' + lines.length + ' line(s)');
+}
+
+function importText(text){
+  var lines = text.split(/\r\n|\r|\n/);
+  var count = 0;
+  lines.forEach(function(raw){
+    var line = raw.trim();
+    if (!line) return;
+    var m12 = line.match(/^(\d{12})(.*)$/);
+    var m8 = !m12 ? line.match(/^(\d{8})(.*)$/) : null;
+    var digits, txt;
+    if (m12){ digits = m12[1]; txt = m12[2]; }
+    else if (m8){ digits = m8[1] + '9999'; txt = m8[2]; }
+    else return;
+    var y = parseInt(digits.substr(0,4),10);
+    var mo = parseInt(digits.substr(4,2),10);
+    var da = parseInt(digits.substr(6,2),10);
+    var hhmi = digits.substr(8,4);
+    var jd;
+    try { jd = ToJul(y,mo,da); } catch(e){ return; }
+    if (hhmi === '9999'){
+      var d1 = ensureDay(jd);
+      d1.notes = (d1.notes ? d1.notes + '\n' : '') + txt;
+    } else if (hhmi === '8888'){
+      ensureDay(jd).appts.push({ time:'', text: txt });
+    } else {
+      var hh = hhmi.substr(0,2), mi = hhmi.substr(2,2);
+      ensureDay(jd).appts.push({ time: hh + ':' + mi, text: txt });
+    }
+    count++;
+  });
+  return count;
+}
+
+/* ---- .ics format ---- */
+
+function icsEscape(s){
+  return (s || '').replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\n/g,'\\n');
+}
+function icsUnescape(s){
+  return (s || '').replace(/\\n/g,'\n').replace(/\\,/g,',').replace(/\\;/g,';').replace(/\\\\/g,'\\');
+}
+function icsDtStamp(){
+  var d = new Date();
+  return d.getUTCFullYear() + pad(d.getUTCMonth()+1,2) + pad(d.getUTCDate(),2)
+       + 'T' + pad(d.getUTCHours(),2) + pad(d.getUTCMinutes(),2) + pad(d.getUTCSeconds(),2) + 'Z';
+}
+
+function icsRRule(freq, originJDN){
+  switch (freq){
+    case 'daily':   return 'RRULE:FREQ=DAILY';
+    case 'weekly':  return 'RRULE:FREQ=WEEKLY';
+    case 'monthly': return 'RRULE:FREQ=MONTHLY';
+    case 'yearly':  return 'RRULE:FREQ=YEARLY';
+    case 'monthlyWeekday':
+      var op = FromJul(originJDN);
+      var dow = ((originJDN % 7) + 1) % 7;
+      var n = Math.ceil(op.d / 7);
+      var codes = ['SU','MO','TU','WE','TH','FR','SA'];
+      return 'RRULE:FREQ=MONTHLY;BYDAY=' + n + codes[dow];
+    case 'yearlyWeekday':
+      var opY = FromJul(originJDN);
+      var dowY = ((originJDN % 7) + 1) % 7;
+      var nY = Math.ceil(opY.d / 7);
+      var codesY = ['SU','MO','TU','WE','TH','FR','SA'];
+      return 'RRULE:FREQ=YEARLY;BYDAY=' + nY + codesY[dowY] + ';BYMONTH=' + opY.m;
+    default: return null;
+  }
+}
+
+function exportIcs(){
+  var out = ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Kalends//JDN Almanac//EN','CALSCALE:GREGORIAN'];
+  var stamp = icsDtStamp();
+  var n = 0;
+  Object.keys(dayData).sort(function(a,b){ return a - b; }).forEach(function(jdStr){
+    var jd = parseInt(jdStr, 10);
+    var parts = FromJul(jd);
+    var dateStr = pad(parts.y,4) + pad(parts.m,2) + pad(parts.d,2);
+    var day = dayData[jdStr];
+    (day.appts || []).forEach(function(a, idx){
+      if (!a.text && !a.time && !a.allDay) return;
+      out.push('BEGIN:VEVENT');
+      out.push('UID:' + jdStr + '-' + idx + '@kalends');
+      out.push('DTSTAMP:' + stamp);
+      if (a.time && !a.allDay){
+        var hm = a.time.split(':');
+        out.push('DTSTART:' + dateStr + 'T' + pad(hm[0],2) + pad(hm[1],2) + '00');
+      } else {
+        out.push('DTSTART;VALUE=DATE:' + dateStr);
+      }
+      if (a.repeat && a.repeat.freq){
+        var rrule = icsRRule(a.repeat.freq, jd);
+        if (rrule) out.push(rrule);
+      }
+      out.push('SUMMARY:' + icsEscape(a.text || '(untitled)'));
+      out.push('END:VEVENT');
+      n++;
+    });
+    if (day.notes && day.notes.trim()){
+      out.push('BEGIN:VJOURNAL');
+      out.push('UID:' + jdStr + '-note@kalends');
+      out.push('DTSTAMP:' + stamp);
+      out.push('DTSTART;VALUE=DATE:' + dateStr);
+      out.push('SUMMARY:Note');
+      out.push('DESCRIPTION:' + icsEscape(day.notes.trim()));
+      out.push('END:VJOURNAL');
+      n++;
+    }
+  });
+  out.push('END:VCALENDAR');
+  downloadBlob(out.join('\r\n') + '\r\n', 'kalends-export-' + stampForFilename() + '.ics', 'text/calendar');
+  showImportStatus('exported ' + n + ' item(s)');
+}
+
+function importIcs(text){
+  var unfolded = text.replace(/\r\n/g,'\n').replace(/\n[ \t]/g,'');
+  var lines = unfolded.split('\n');
+  var count = 0;
+  var cur = null;
+  lines.forEach(function(raw){
+    var line = raw.trim();
+    if (!line) return;
+    if (line === 'BEGIN:VEVENT' || line === 'BEGIN:VJOURNAL'){
+      cur = { type: line.substring(6), props:{} };
+      return;
+    }
+    if (line === 'END:VEVENT' || line === 'END:VJOURNAL'){
+      if (cur) count += applyIcsComponent(cur);
+      cur = null;
+      return;
+    }
+    if (!cur) return;
+    var idx = line.indexOf(':');
+    if (idx < 0) return;
+    var key = line.substring(0, idx).split(';')[0].toUpperCase();
+    var value = line.substring(idx + 1);
+    cur.props[key] = value;
+  });
+  return count;
+}
+
+function parseRRuleFreq(rrule){
+  if (!rrule) return null;
+  var parts = {};
+  rrule.split(';').forEach(function(p){
+    var kv = p.split('=');
+    parts[kv[0]] = kv[1];
+  });
+  if (parts.FREQ === 'DAILY') return 'daily';
+  if (parts.FREQ === 'WEEKLY') return 'weekly';
+  if (parts.FREQ === 'YEARLY') return parts.BYDAY ? 'yearlyWeekday' : 'yearly';
+  if (parts.FREQ === 'MONTHLY') return parts.BYDAY ? 'monthlyWeekday' : 'monthly';
+  return null;
+}
+
+function applyIcsComponent(comp){
+  var dtRaw = comp.props['DTSTART'];
+  if (!dtRaw) return 0;
+  var m = dtRaw.match(/^(\d{4})(\d{2})(\d{2})(T(\d{2})(\d{2}))?/);
+  if (!m) return 0;
+  var y = parseInt(m[1],10), mo = parseInt(m[2],10), da = parseInt(m[3],10);
+  var hasTime = !!m[4];
+  var jd;
+  try { jd = ToJul(y, mo, da); } catch(e){ return 0; }
+  var summary = comp.props['SUMMARY'] ? icsUnescape(comp.props['SUMMARY']) : '';
+  var desc = comp.props['DESCRIPTION'] ? icsUnescape(comp.props['DESCRIPTION']) : '';
+  if (comp.type === 'VJOURNAL'){
+    var noteText = desc || summary;
+    if (!noteText) return 0;
+    var d1 = ensureDay(jd);
+    d1.notes = (d1.notes ? d1.notes + '\n' : '') + noteText;
+  } else {
+    var freq = parseRRuleFreq(comp.props['RRULE']);
+    ensureDay(jd).appts.push({
+      time: hasTime ? (m[5] + ':' + m[6]) : '',
+      text: summary || desc || '(untitled)',
+      allDay: !hasTime,
+      repeat: freq ? { freq: freq } : null
+    });
+  }
+  return 1;
+}
+
+function handleImportFile(file){
+  var reader = new FileReader();
+  reader.onload = function(e){
+    var text = e.target.result || '';
+    var count;
+    if (/BEGIN:VCALENDAR/i.test(text)){
+      count = importIcs(text);
+    } else {
+      count = importText(text);
+    }
+    saveDayData();
+    render();
+    showImportStatus('imported ' + count + ' item(s)');
+  };
+  reader.onerror = function(){ showImportStatus('could not read file'); };
+  reader.readAsText(file);
+}
+
+var activeRecurringList = [];
+function openDayPanel(jd, parts, holidayName, moonInfo, seasonInfo, recurringList){
+  activeJDN = jd;
+  activeRecurringList = recurringList || [];
+  var dow = DayAbbr[((jd % 7) + 1) % 7];
+  document.getElementById('dpDate').textContent = dow + ', ' + MonthName[parts.m] + ' ' + parts.d + ', ' + parts.y;
+  document.getElementById('dpJdn').textContent = 'JDN ' + jd;
+  document.getElementById('dpHoliday').textContent = holidayName || '';
+  document.getElementById('dpMoon').textContent = moonInfo ? (moonInfo.glyph + ' ' + moonInfo.label + ' \u2014 ' + moonInfo.time) : '';
+  document.getElementById('dpSeason').textContent = seasonInfo ? (seasonInfo.label + ' \u2014 ' + seasonInfo.time) : '';
+  var d = getDay(jd);
+  document.getElementById('dpNotes').value = d.notes || '';
+  renderApptRows(d.appts || []);
+  document.getElementById('overlay').hidden = false;
+}
+
+function closeDayPanel(){
+  if (activeJDN != null){ pruneIfEmpty(activeJDN); saveDayData(); }
+  document.getElementById('overlay').hidden = true;
+  activeJDN = null;
+  render();
+}
+
+function renderApptRows(appts){
+  var list = document.getElementById('apptList');
+  list.innerHTML = '';
+  appts.forEach(function(a, idx){ list.appendChild(buildApptRow(a, idx)); });
+  activeRecurringList.forEach(function(r){ list.appendChild(buildRecurringRow(r)); });
+}
+
+var FREQ_LABEL = { daily:'daily', weekly:'weekly', monthly:'monthly (date)', monthlyWeekday:'monthly (weekday)', yearly:'yearly (date)', yearlyWeekday:'yearly (weekday)' };
+
+function buildApptRow(a, idx){
+  var row = document.createElement('div');
+  row.className = 'apptrow';
+
+  var controls = document.createElement('div');
+  controls.className = 'apptrow-controls';
+
+  var time = document.createElement('input');
+  time.type = 'time';
+  time.value = a.time || '';
+  time.disabled = !!a.allDay;
+  time.addEventListener('change', function(){
+    ensureDay(activeJDN).appts[idx].time = time.value;
+    scheduleSave();
+  });
+
+  var allDayLabel = document.createElement('label');
+  allDayLabel.className = 'allDayLabel';
+  var allDayCheck = document.createElement('input');
+  allDayCheck.type = 'checkbox';
+  allDayCheck.checked = !!a.allDay;
+  allDayCheck.addEventListener('change', function(){
+    var d = ensureDay(activeJDN);
+    d.appts[idx].allDay = allDayCheck.checked;
+    time.disabled = allDayCheck.checked;
+    if (allDayCheck.checked){ time.value = ''; d.appts[idx].time = ''; }
+    scheduleSave();
+  });
+  allDayLabel.appendChild(allDayCheck);
+  allDayLabel.appendChild(document.createTextNode(' all day'));
+
+  var repeatSelect = document.createElement('select');
+  repeatSelect.className = 'repeatSelect';
+  [['', 'no repeat'], ['daily','daily'], ['weekly','weekly'], ['monthly','monthly (date)'],
+   ['monthlyWeekday','monthly (weekday)'], ['yearly','yearly (date)'], ['yearlyWeekday','yearly (weekday)']].forEach(function(opt){
+    var o = document.createElement('option');
+    o.value = opt[0]; o.textContent = opt[1];
+    repeatSelect.appendChild(o);
+  });
+  repeatSelect.value = (a.repeat && a.repeat.freq) ? a.repeat.freq : '';
+  repeatSelect.addEventListener('change', function(){
+    var d = ensureDay(activeJDN);
+    d.appts[idx].repeat = repeatSelect.value ? { freq: repeatSelect.value } : null;
+    scheduleSave();
+  });
+
+  var rm = document.createElement('button');
+  rm.type = 'button';
+  rm.className = 'rm';
+  rm.innerHTML = '&times;';
+  rm.title = 'Remove';
+  rm.addEventListener('click', function(){
+    var d = ensureDay(activeJDN);
+    d.appts.splice(idx, 1);
+    renderApptRows(d.appts);
+    scheduleSave();
+  });
+
+  controls.appendChild(time);
+  controls.appendChild(allDayLabel);
+  controls.appendChild(repeatSelect);
+  controls.appendChild(rm);
+
+  var text = document.createElement('input');
+  text.type = 'text';
+  text.className = 'apptrow-text';
+  text.placeholder = 'e.g. Arctic heat pump install, buffer tank delivery';
+  text.value = a.text || '';
+  text.addEventListener('input', function(){
+    ensureDay(activeJDN).appts[idx].text = text.value;
+    scheduleSave();
+  });
+
+  row.appendChild(controls);
+  row.appendChild(text);
+  return row;
+}
+
+function buildRecurringRow(r){
+  var row = document.createElement('div');
+  row.className = 'apptrow recurring-row';
+
+  var label = document.createElement('div');
+  label.className = 'recurring-label';
+  var timeLabel = r.allDay ? '<b>ALL DAY</b>' : (r.time ? '<b>' + r.time + '</b>' : '');
+  label.innerHTML = '\u21bb ' + timeLabel + ' ' + escapeHtml(r.text || '') +
+    ' <i>(' + (FREQ_LABEL[r.freq] || r.freq) + ', from ' + FromJul(r.originJDN).y + '-' + pad(FromJul(r.originJDN).m,2) + '-' + pad(FromJul(r.originJDN).d,2) + ')</i>';
+
+  var stop = document.createElement('button');
+  stop.type = 'button';
+  stop.className = 'rm';
+  stop.title = 'Stop repeating (removes this recurrence going forward)';
+  stop.innerHTML = '&#9209;';
+  stop.addEventListener('click', function(){
+    var originDay = dayData[r.originJDN];
+    if (originDay && originDay.appts && originDay.appts[r.idx]){
+      originDay.appts[r.idx].repeat = null;
+      saveDayData();
+    }
+    row.remove();
+  });
+
+  row.appendChild(label);
+  row.appendChild(stop);
+  return row;
+}
+
+document.getElementById('apptAdd').addEventListener('click', function(){
+  if (activeJDN == null) return;
+  var d = ensureDay(activeJDN);
+  d.appts.push({ time:'', text:'' });
+  renderApptRows(d.appts);
+});
+
+document.getElementById('dpNotes').addEventListener('input', function(e){
+  if (activeJDN == null) return;
+  ensureDay(activeJDN).notes = e.target.value;
+  scheduleSave();
+});
+
+document.getElementById('dpClose').addEventListener('click', closeDayPanel);
+document.getElementById('exportTxtBtn').addEventListener('click', exportText);
+document.getElementById('exportIcsBtn').addEventListener('click', exportIcs);
+document.getElementById('importTxtBtn').addEventListener('click', function(){
+  document.getElementById('importFileTxt').click();
+});
+document.getElementById('importFileTxt').addEventListener('change', function(e){
+  var file = e.target.files && e.target.files[0];
+  if (file) handleImportFile(file);
+  e.target.value = '';
+});
+document.getElementById('importIcsBtn').addEventListener('click', function(){
+  document.getElementById('importFileIcs').click();
+});
+document.getElementById('importFileIcs').addEventListener('change', function(e){
+  var file = e.target.files && e.target.files[0];
+  if (file) handleImportFile(file);
+  e.target.value = '';
+});
+document.getElementById('correctionSelect').addEventListener('change', function(e){
+  setCorrection(e.target.value);
+  todayJDN = ToJul(todayNow.getFullYear(), todayNow.getMonth()+1, todayNow.getDate());
+  saveSettings();
+  render();
+});
+document.getElementById('zoomInBtn').addEventListener('click', function(){
+  setZoom(zoomLevel + ZOOM_STEP);
+  saveSettings();
+});
+document.getElementById('zoomOutBtn').addEventListener('click', function(){
+  setZoom(zoomLevel - ZOOM_STEP);
+  saveSettings();
+});
+document.getElementById('zoomResetBtn').addEventListener('click', function(){
+  setZoom(1);
+  saveSettings();
+});
+document.getElementById('remindersToggle').addEventListener('change', function(e){
+  var wantOn = e.target.checked;
+  function commit(){
+    setReminders(wantOn, parseInt(document.getElementById('remindLeadInput').value, 10));
+    saveSettings();
+    if (wantOn) checkReminders();
+  }
+  if (wantOn && typeof Notification !== 'undefined' && Notification.permission === 'default'){
+    Notification.requestPermission().then(commit).catch(commit);
+  } else {
+    commit();
+  }
+});
+document.getElementById('remindLeadInput').addEventListener('change', function(e){
+  setReminders(remindersOn, parseInt(e.target.value, 10));
+  saveSettings();
+});
+document.getElementById('overlay').addEventListener('click', function(e){
+  if (e.target.id === 'overlay') closeDayPanel();
+});
+
+/* drag-and-drop import: works alongside the import buttons. Guarded to
+   only react to actual file drags (dataTransfer.types includes 'Files'),
+   so dragging/selecting text inside the notes textarea is unaffected. */
+function isFileDrag(e){
+  return !!(e.dataTransfer && e.dataTransfer.types &&
+    Array.prototype.indexOf.call(e.dataTransfer.types, 'Files') !== -1);
+}
+var dragDepth = 0;
+document.addEventListener('dragenter', function(e){
+  if (!isFileDrag(e)) return;
+  e.preventDefault();
+  dragDepth++;
+  var dz = document.getElementById('dropOverlay');
+  if (dz) dz.hidden = false;
+});
+document.addEventListener('dragleave', function(e){
+  if (!isFileDrag(e)) return;
+  e.preventDefault();
+  dragDepth = Math.max(0, dragDepth - 1);
+  if (dragDepth === 0){
+    var dz = document.getElementById('dropOverlay');
+    if (dz) dz.hidden = true;
+  }
+});
+document.addEventListener('dragover', function(e){
+  if (!isFileDrag(e)) return;
+  e.preventDefault(); // required for drop to be allowed
+});
+document.addEventListener('drop', function(e){
+  if (!isFileDrag(e)) return;
+  e.preventDefault();
+  dragDepth = 0;
+  var dz = document.getElementById('dropOverlay');
+  if (dz) dz.hidden = true;
+  var files = e.dataTransfer.files;
+  if (files && files.length) handleImportFile(files[0]);
+});
+
+document.getElementById('prevBtn').addEventListener('click', function(){ shiftMonth(-1); });
+document.getElementById('nextBtn').addEventListener('click', function(){ shiftMonth(1); });
+document.getElementById('prevYearBtn').addEventListener('click', function(){ shiftYear(-1); });
+document.getElementById('nextYearBtn').addEventListener('click', function(){ shiftYear(1); });
+document.getElementById('todayJump').addEventListener('click', function(){
+  viewY = todayNow.getFullYear(); viewM = todayNow.getMonth()+1; render();
+});
+function goToJDN(){
+  var input = document.getElementById('jdnJump');
+  var jd = parseInt(input.value, 10);
+  if (isNaN(jd)) return;
+  var parts = FromJul(jd);
+  viewY = parts.y; viewM = parts.m;
+  clampView();
+  render();
+  input.value = '';
+}
+document.getElementById('jdnJump').addEventListener('change', goToJDN);
+document.getElementById('jdnJump').addEventListener('keydown', function(e){
+  if (e.key === 'Enter') goToJDN();
+});
+document.getElementById('gotoMonth').addEventListener('change', goToMonthYear);
+document.getElementById('gotoYear').addEventListener('change', goToMonthYear);
+document.getElementById('gotoYear').addEventListener('keydown', function(e){
+  if (e.key === 'Enter') goToMonthYear();
+});
+document.addEventListener('keydown', function(e){
+  var overlay = document.getElementById('overlay');
+  if (overlay && !overlay.hidden){
+    if (e.key === 'Escape') closeDayPanel();
+    return; // don't let month-nav shortcuts hijack keystrokes while editing
+  }
+  var active = document.activeElement;
+  if (active && (active.id === 'gotoYear' || active.id === 'gotoMonth' || active.id === 'jdnJump')) return; // typing
+  if (e.key === 'ArrowLeft') shiftMonth(-1);
+  if (e.key === 'ArrowRight') shiftMonth(1);
+});
+
+buildWeekdayRow();
+populateGotoMonth();
+loadSettings(function(){
+  todayJDN = ToJul(todayNow.getFullYear(), todayNow.getMonth()+1, todayNow.getDate());
+  render();
+});
+loadDayData();
+setInterval(checkReminders, 20000);
+setInterval(updateClock, 60000);
+</script>
+</body>
+</html>
