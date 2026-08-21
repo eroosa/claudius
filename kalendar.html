@@ -834,7 +834,7 @@
     </div>
   </footer>
 
-  <div class="buildstamp">build 2026-08-16 12:21 UTC</div>
+  <div class="buildstamp">build 2026-08-20 20:38 UTC</div>
 
 </div>
 
@@ -1073,13 +1073,18 @@ function PhaseHunt(sdate){
   var y0 = FromJul(Math.floor(adate));
   var k1 = Math.floor((y0.y + ((y0.m-1)*(1/12)) - 1900) * 12.3685);
   var nt1 = MeanPhase(adate,k1), k2, nt2;
-  while (true){
+  var guard = 0;
+  while (guard < 1000){
     adate += synmonth;
     k2 = k1+1;
     nt2 = MeanPhase(adate,k2);
     if (nt1 <= sdate && nt2 > sdate) break;
     nt1 = nt2; k1 = k2;
+    guard++;
   }
+  // Note: same precision-breakdown risk as eccentric_anomaly for
+  // astronomically distant years -- the guard prevents a hang; the
+  // result is simply meaningless that far out.
   return [
     TruePhase(k1,0.0), TruePhase(k1,0.25), TruePhase(k1,0.5), TruePhase(k1,0.75),
     TruePhase(k2,0.0), TruePhase(k2,0.25), TruePhase(k2,0.5), TruePhase(k2,0.75)
@@ -1091,10 +1096,17 @@ function PhaseHunt(sdate){
    to within roughly an hour -- plenty for a calendar, not an ephemeris. */
 function eccentric_anomaly(M, e){
   var E = M, delta;
+  var guard = 0;
   do {
     delta = E - e * Math.sin(E) - M;
     E -= delta / (1 - e * Math.cos(E));
-  } while (Math.abs(delta) >= 1e-9);
+    guard++;
+  } while (Math.abs(delta) >= 1e-9 && guard < 100);
+  // Note: for astronomically distant years, huge angles lose precision in
+  // trig reduction and this can fail to converge at all -- the guard
+  // above prevents that from hanging the page. The result is simply
+  // meaningless that far out (as is the underlying low-precision solar
+  // model itself, long before this point).
   return E;
 }
 function positionSun(jd){
@@ -1452,6 +1464,23 @@ function updateClock(){
   if (!el) return;
   var now = new Date();
   el.textContent = pad(now.getHours(),2) + ':' + pad(now.getMinutes(),2);
+}
+
+/* todayNow/todayJDN are read in a few places (the header, "jump to
+   today", the grid's today-highlight) but were only ever computed once
+   at page load. A tab left open overnight -- or backgrounded and
+   resumed the next day, which on mobile often freezes JS execution
+   rather than reloading it -- would keep showing yesterday's date
+   indefinitely. This re-checks against a fresh Date and only re-renders
+   if the civil day has actually changed, so it's cheap to call often. */
+function checkDayRollover(){
+  var now = new Date();
+  var freshJDN = ToJul(now.getFullYear(), now.getMonth()+1, now.getDate());
+  todayNow = now;
+  if (freshJDN !== todayJDN){
+    todayJDN = freshJDN;
+    render();
+  }
 }
 
 function escapeHtml(s){
@@ -2226,7 +2255,9 @@ document.getElementById('nextBtn').addEventListener('click', function(){ shiftMo
 document.getElementById('prevYearBtn').addEventListener('click', function(){ shiftYear(-1); });
 document.getElementById('nextYearBtn').addEventListener('click', function(){ shiftYear(1); });
 document.getElementById('todayJump').addEventListener('click', function(){
-  viewY = todayNow.getFullYear(); viewM = todayNow.getMonth()+1; render();
+  checkDayRollover();
+  var now = new Date();
+  viewY = now.getFullYear(); viewM = now.getMonth()+1; render();
 });
 function goToJDN(){
   var input = document.getElementById('jdnJump');
@@ -2259,6 +2290,50 @@ document.addEventListener('keydown', function(e){
   if (e.key === 'ArrowRight') shiftMonth(1);
 });
 
+/* Swipe navigation: horizontal -> month, vertical -> year. Scoped to the
+   grid element (not the whole page) so normal page scrolling elsewhere
+   and short taps (to open a day) are unaffected. Direction is only
+   decided -- and preventDefault only called -- once the gesture clears
+   a minimum distance, so small movements/taps pass through untouched.
+   Gestures starting within EDGE_ZONE of either screen edge are ignored
+   entirely (no preventDefault at all) so Android/Brave's native
+   edge-swipe "go back" gesture -- which starts from that same region,
+   especially the left edge -- isn't fought by this handler. */
+(function(){
+  var SWIPE_THRESHOLD = 45; // px
+  var EDGE_ZONE = 28; // px reserved for the OS/browser back-gesture
+  var startX = null, startY = null, handled = false, edgeGesture = false;
+  var gridEl = document.getElementById('grid');
+  if (!gridEl) return;
+
+  gridEl.addEventListener('touchstart', function(e){
+    if (e.touches.length !== 1) return;
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    handled = false;
+    var vw = window.innerWidth || document.documentElement.clientWidth;
+    edgeGesture = (startX < EDGE_ZONE || startX > vw - EDGE_ZONE);
+  }, { passive: true });
+
+  gridEl.addEventListener('touchmove', function(e){
+    if (startX === null || handled || edgeGesture || e.touches.length !== 1) return;
+    var dx = e.touches[0].clientX - startX;
+    var dy = e.touches[0].clientY - startY;
+    if (Math.abs(dx) < SWIPE_THRESHOLD && Math.abs(dy) < SWIPE_THRESHOLD) return;
+    handled = true;
+    e.preventDefault();
+    if (Math.abs(dx) > Math.abs(dy)){
+      if (dx < 0) shiftMonth(1); else shiftMonth(-1);
+    } else {
+      if (dy < 0) shiftYear(1); else shiftYear(-1);
+    }
+  }, { passive: false });
+
+  function resetTouch(){ startX = null; startY = null; handled = false; edgeGesture = false; }
+  gridEl.addEventListener('touchend', resetTouch);
+  gridEl.addEventListener('touchcancel', resetTouch);
+})();
+
 buildWeekdayRow();
 populateGotoMonth();
 loadSettings(function(){
@@ -2267,7 +2342,11 @@ loadSettings(function(){
 });
 loadDayData();
 setInterval(checkReminders, 20000);
-setInterval(updateClock, 60000);
+setInterval(function(){ updateClock(); checkDayRollover(); }, 60000);
+document.addEventListener('visibilitychange', function(){
+  if (!document.hidden){ updateClock(); checkDayRollover(); }
+});
+window.addEventListener('pageshow', function(){ updateClock(); checkDayRollover(); });
 </script>
 </body>
 </html>
