@@ -69,7 +69,7 @@
   .stage{
     max-width:1040px;
     margin:0 auto;
-    padding: 28px 18px 60px;
+    padding: 20px 12px 40px;
     transform: scale(var(--zoom));
     transform-origin: top center;
   }
@@ -133,7 +133,7 @@
     background:transparent;
     border:1px solid var(--rule);
     color:var(--brass);
-    width:34px; height:34px;
+    width:40px; height:40px;
     flex:0 0 auto;
     border-radius:50%;
     font-size:16px;
@@ -150,8 +150,8 @@
     align-items:center;
     flex-wrap:wrap;
     gap:10px;
-    margin-bottom:22px;
-    padding-bottom:16px;
+    margin-bottom:6px;
+    padding-bottom:10px;
     border-bottom:1px solid var(--rule);
     font-family:var(--font-mono);
     font-size:11px;
@@ -164,7 +164,7 @@
     font-family:var(--font-mono);
     font-size:11px;
     letter-spacing:0.02em;
-    padding:5px 11px;
+    padding:6px 8px;
     cursor:pointer;
   }
   .databar button:hover{ border-color:var(--azure); color:var(--parchment); }
@@ -289,8 +289,9 @@
     border-bottom:1px dotted var(--rule);
     color:var(--parchment);
     font-family:var(--font-serif);
-    font-size:32px;
+    font-size:26px;
     font-weight:400;
+    width:6em;
     letter-spacing:0.04em;
     text-align:center;
     cursor:pointer;
@@ -298,11 +299,13 @@
   }
   .monthSelect:hover, .yearInput:hover{ border-bottom-color:var(--azure); }
   .monthSelect:focus, .yearInput:focus{ outline:none; border-bottom:1px solid var(--brass); }
-  .yearInput{ color:var(--brass); width:5.4em; cursor:text; }
+  .yearInput{ color:var(--parchment); width:6em; cursor:text; -moz-appearance:textfield; }
   .yearInput::-webkit-inner-spin-button, .yearInput::-webkit-outer-spin-button{
     -webkit-appearance:none; margin:0;
   }
   .jump-row{
+    font-family:var(--font-mono);
+    font-size:12px;
     display:flex;
     align-items:center;
     justify-content:center;
@@ -312,7 +315,7 @@
   }
   .today-jump{
     font-family:var(--font-mono);
-    font-size:10.5px;
+    font-size:12px;
     letter-spacing:0.06em;
     color:var(--azure);
     text-transform:uppercase;
@@ -320,12 +323,6 @@
     border-bottom:1px dotted var(--azure);
   }
   .today-jump:hover{ color:var(--parchment); }
-  .jump-or{
-    font-family:var(--font-mono);
-    font-size:10.5px;
-    color:var(--parchment-dim);
-    text-transform:uppercase;
-  }
   .jdnJumpInput{
     appearance:none;
     background:transparent;
@@ -333,11 +330,12 @@
     border-bottom:1px dotted var(--azure);
     color:var(--azure);
     font-family:var(--font-mono);
-    font-size:10.5px;
-    letter-spacing:0.04em;
+    font-size:12px;
+    letter-spacing:0.06em;
     width:6.5em;
     padding:0 0 1px;
     cursor:text;
+    -moz-appearance:textfield;
   }
   .jdnJumpInput::placeholder{ color:var(--parchment-dim); opacity:0.7; }
   .jdnJumpInput:hover{ border-bottom-color:var(--parchment); }
@@ -648,9 +646,9 @@
 
   /* ---------- footer ---------- */
   footer{
-    margin-top:26px;
-    padding-top:14px;
-    border-top:1px solid var(--rule);
+    margin-top:0px;
+    padding-top:0px;
+    border-top:0px solid var(--rule);
     display:flex;
     justify-content:space-between;
     flex-wrap:wrap;
@@ -706,9 +704,9 @@
     text-align:center;
   }
 
-  @media (max-width:640px){
+  @media (max-width:660px){
     .navbar{ gap:6px; }
-    .navbtn{ width:24px; height:24px; font-size:12px; }
+    .navbtn{ width:28px; height:28px; font-size:12px; }
     .navbtn-year{ font-size:10px; }
     .cell{ min-height:74px; padding:5px; }
     .tag.note{ display:none; }
@@ -732,7 +730,7 @@
 <div class="stage">
 
   <header class="top">
-    <div class="brand">Kalends<small>a perpetual almanac, reckoned in Julian Day Numbers</small></div>
+    <div class="brand" title="build 20260830_36_13:38:02">Kalends<small>a perpetual almanac, reckoned in Julian Day Numbers</small></div>
     <div class="epoch-note" id="epochNote"></div>
   </header>
 
@@ -744,16 +742,17 @@
           <button class="navbtn" id="nextBtn" title="Next month">&rsaquo;</button>
         </div>
         <select id="gotoMonth" class="monthSelect"></select>
-        <input type="number" id="gotoYear" class="yearInput" inputmode="numeric" min="-4712">
+        <input type="number" id="gotoYear" class="yearInput" inputmode="numeric" min="-4712" max="500000">
         <div class="picker-group">
           <button class="navbtn navbtn-year" id="prevYearBtn" title="Previous year">&laquo;</button>
           <button class="navbtn navbtn-year" id="nextYearBtn" title="Next year">&raquo;</button>
         </div>
       </div>
       <div class="jump-row">
-        <span class="today-jump" id="todayJump">jump to today</span>
-        <span class="jump-or">or</span>
-        <input type="number" id="jdnJump" class="jdnJumpInput" placeholder="JDN" inputmode="numeric">
+        Jump to:
+        <span class="today-jump" id="todayJump">today</span>
+        or JDN:
+        <input type="number" id="jdnJump" class="jdnJumpInput" inputmode="numeric" min="0" max="4000000000">
       </div>
     </div>
   </div>
@@ -767,6 +766,8 @@
         <div>
           <div class="dp-date" id="dpDate"></div>
           <div class="dp-jdn" id="dpJdn"></div>
+          <div class="dp-jdn" id="dpIso"></div>
+          <div class="dp-jdn" id="dpBuild"></div>
           <div class="dp-holiday" id="dpHoliday"></div>
           <div class="dp-season" id="dpSeason"></div>
           <div class="dp-moon" id="dpMoon"></div>
@@ -796,6 +797,7 @@
     <input type="file" id="importFileTxt" accept=".txt,text/plain" hidden>
     <button id="importIcsBtn" type="button">import .ics</button>
     <input type="file" id="importFileIcs" accept=".ics,.ical,text/calendar" hidden>
+    <span class="databar-status" id="importStatus"></span>
     <span class="databar-sep"></span>
     <div class="zoomgroup">
       <button id="zoomOutBtn" type="button" title="Smaller text">A&minus;</button>
@@ -810,32 +812,29 @@
       <input type="number" id="remindLeadInput" min="1" max="180" value="15">
       <span class="remLabel">min before</span>
     </div>
-    <span class="databar-status" id="importStatus"></span>
+    <div class="reminder-toast" id="reminderToast" hidden></div>
   </div>
 
-  <div class="reminder-toast" id="reminderToast" hidden></div>
-
-  <div class="month-span-note" id="monthSpanNote"></div>
-
   <footer>
-    <div class="legend">
-      <span><b>JDN</b> = Julian Day Number, noon-to-noon count since 4713 BCE</span>
-      <span><b>&#9789; &#9790; &#9791; &#9792;</b> lunar phase</span>
+    <div class="legend" title="Developed by Earl Roosa, with assistance from Claude. earlroosa@gmail.com">
+      <span>
+      <a href="https://en.wikipedia.org/wiki/Julian_day" target="_blank" rel="noopener" class="prolepticLink"
+        title="Julian days enumerate an epoch of 3 calendric cycles.">
+        JDN = Julian Day Number, noon-to-noon count since Jan 1, 4713 BCE.
+      </a>
     </div>
     <div id="reformNote">
+      <a href="https://en.wikipedia.org/wiki/Proleptic_Julian_calendar" target="_blank" rel="noopener" class="prolepticLink"
+         title="Proleptic: a calendar's rules extended backward to dates before it actually existed. The Julian calendar was genuinely in use starting 45 BCE; before that, dates here are proleptic Julian.">Proleptic Julian</a>
+      calendar until 45 BCE, Julian until 
       <select id="correctionSelect">
         <option value="gregorian">Gregorian</option>
-        <option value="english">English</option>
+        <option value="anglican">Anglican</option>
       </select>
-      from <span id="reformDate">1582-10-15</span> &middot; Julian before that,
-      <a href="https://en.wikipedia.org/wiki/Proleptic_Julian_calendar" target="_blank" rel="noopener" class="prolepticLink"
-         title="Proleptic: a calendar's rules extended backward to dates before it actually existed. The Julian calendar was genuinely in use starting 45 BCE; before that, dates here are proleptic Julian.">proleptic</a>
-      before 45 BCE
+      correction of
+      <span id="reformDate">1582-10-15</span>
     </div>
   </footer>
-
-  <div class="buildstamp">build 2026-08-20 20:38 UTC</div>
-
 </div>
 
 <div class="dropzone-overlay" id="dropOverlay" hidden>
@@ -854,11 +853,11 @@
 var cGDY1 = 1582, cGDM1 = 10, cGDD1 = 15, cGDFIX = 10, cGREGORYDAY1 = 2299161;
 var aGDY1 = 1752, aGDM1 = 9,  aGDD1 = 14, aGDFIX = 11, aGREGORYDAY1 = 2361222;
 var GDY1 = cGDY1, GDM1 = cGDM1, GDD1 = cGDD1, GDFIX = cGDFIX, GREGORYDAY1 = cGREGORYDAY1;
-var correctionMode = 'gregorian'; // 'gregorian' (Catholic/European, 1582-10-15) or 'english' (Anglo-American, 1752-09-14)
+var correctionMode = 'gregorian'; // 'gregorian' (Catholic/European, 1582-10-15) or 'anglican' (Anglo-American, 1752-09-14)
 
 function setCorrection(mode){
-  correctionMode = (mode === 'english') ? 'english' : 'gregorian';
-  if (correctionMode === 'english'){
+  correctionMode = (mode === 'anglican') ? 'anglican' : 'gregorian';
+  if (correctionMode === 'anglican'){
     GDY1 = aGDY1; GDM1 = aGDM1; GDD1 = aGDD1; GDFIX = aGDFIX; GREGORYDAY1 = aGREGORYDAY1;
   } else {
     GDY1 = cGDY1; GDM1 = cGDM1; GDD1 = cGDD1; GDFIX = cGDFIX; GREGORYDAY1 = cGREGORYDAY1;
@@ -1408,7 +1407,7 @@ function render(){
       var at = document.createElement('div');
       at.className = 'tag appt' + (a.recurring ? ' recurring' : '');
       var marker = a.recurring ? '\u21bb ' : '';
-      var timeLabel = a.allDay ? '<b>ALL DAY</b> ' : (a.time ? '<b>' + a.time + '</b>' : '');
+      var timeLabel = a.allDay ? '' : (a.time ? '<b>' + a.time + '</b>' : '');
       at.innerHTML = marker + timeLabel + (a.text ? escapeHtml(a.text) : '');
       tags.appendChild(at);
     });
@@ -1437,8 +1436,10 @@ function render(){
 
   var gm = document.getElementById('gotoMonth');
   var gy = document.getElementById('gotoYear');
+  var gj = document.getElementById('jdnJump');
   if (gm && document.activeElement !== gm) gm.value = viewM;
   if (gy && document.activeElement !== gy) gy.value = viewY;
+  if (gj && document.activeElement !== gj) gj.value = firstOfMonth;
 
   var cs = document.getElementById('correctionSelect');
   if (cs && document.activeElement !== cs) cs.value = correctionMode;
@@ -1447,16 +1448,11 @@ function render(){
   if (rd) rd.textContent = GDY1 + '-' + pad(GDM1,2) + '-' + pad(GDD1,2);
 
   document.getElementById('epochNote').innerHTML =
-    'today &middot; <b>JDN ' + todayJDN + '</b> &middot; <span id="liveClock"></span>';
+    '<span id="liveClock"></span>';
   updateClock();
 
-  var msn = document.getElementById('monthSpanNote');
-  if (msn){
-    var isoStart = isoWeekInfo(firstOfMonth);
-    var isoEnd = isoWeekInfo(lastOfMonth);
-    msn.textContent = 'month spans JDN ' + firstOfMonth + '\u2013' + lastOfMonth
-      + '  \u00b7  ISO weeks ' + pad(isoStart.week,2) + '\u2013' + pad(isoEnd.week,2);
-  }
+  document.getElementById('todayJump').innerHTML = 'today (' + todayJDN + ')';
+
 }
 
 function updateClock(){
@@ -2007,8 +2003,11 @@ function openDayPanel(jd, parts, holidayName, moonInfo, seasonInfo, recurringLis
   activeJDN = jd;
   activeRecurringList = recurringList || [];
   var dow = DayAbbr[((jd % 7) + 1) % 7];
+  var iso = isoWeekInfo(jd);
   document.getElementById('dpDate').textContent = dow + ', ' + MonthName[parts.m] + ' ' + parts.d + ', ' + parts.y;
   document.getElementById('dpJdn').textContent = 'JDN ' + jd;
+  document.getElementById('dpIso').textContent = 'ISO week ' + pad(iso.week,2);
+  document.getElementById('dpBuild').textContent = 'build 20260830_36_13:38:02';
   document.getElementById('dpHoliday').textContent = holidayName || '';
   document.getElementById('dpMoon').textContent = moonInfo ? (moonInfo.glyph + ' ' + moonInfo.label + ' \u2014 ' + moonInfo.time) : '';
   document.getElementById('dpSeason').textContent = seasonInfo ? (seasonInfo.label + ' \u2014 ' + seasonInfo.time) : '';
@@ -2257,17 +2256,17 @@ document.getElementById('nextYearBtn').addEventListener('click', function(){ shi
 document.getElementById('todayJump').addEventListener('click', function(){
   checkDayRollover();
   var now = new Date();
-  viewY = now.getFullYear(); viewM = now.getMonth()+1; render();
+  viewY = now.getFullYear(); viewM = now.getMonth()+1; clampView(); render();
 });
 function goToJDN(){
   var input = document.getElementById('jdnJump');
   var jd = parseInt(input.value, 10);
   if (isNaN(jd)) return;
   var parts = FromJul(jd);
-  viewY = parts.y; viewM = parts.m;
+  viewY = parts.y;
+  viewM = parts.m;
   clampView();
   render();
-  input.value = '';
 }
 document.getElementById('jdnJump').addEventListener('change', goToJDN);
 document.getElementById('jdnJump').addEventListener('keydown', function(e){
