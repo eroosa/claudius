@@ -176,12 +176,6 @@
   }
   .databar-status.show{ opacity:1; }
 
-  .month-span-note{
-    font-family:var(--font-mono);
-    font-size:10px;
-    color:var(--parchment-dim);
-    text-align:center;
-  }
   .databar-sep{
     width:1px; height:16px;
     background:var(--rule);
@@ -720,7 +714,6 @@
     .yearInput{ font-size:16px; width:4.4em; }
     .today-jump{ font-size:9px; }
     .epoch-note{ font-size:9px; text-align:left; }
-    .month-span-note{ font-size:9px; }
     .daypanel{ max-width:100%; }
   }
 </style>
@@ -730,7 +723,7 @@
 <div class="stage">
 
   <header class="top">
-    <div class="brand" title="build 20260830_36_13:38:02">Kalends<small>a perpetual almanac, reckoned in Julian Day Numbers</small></div>
+    <div class="brand">Kalends<small>a perpetual almanac, reckoned in Julian Day Numbers</small></div>
     <div class="epoch-note" id="epochNote"></div>
   </header>
 
@@ -767,7 +760,6 @@
           <div class="dp-date" id="dpDate"></div>
           <div class="dp-jdn" id="dpJdn"></div>
           <div class="dp-jdn" id="dpIso"></div>
-          <div class="dp-jdn" id="dpBuild"></div>
           <div class="dp-holiday" id="dpHoliday"></div>
           <div class="dp-season" id="dpSeason"></div>
           <div class="dp-moon" id="dpMoon"></div>
@@ -787,6 +779,7 @@
       </div>
 
       <div class="dp-foot" id="dpSaved">saved</div>
+      <div class="dp-jdn" id="dpBuild"></div>
     </div>
   </div>
 
@@ -1242,23 +1235,36 @@ function observedFixedHoliday(H, year, month, day, name){
   if (jd < 0) return;
   var dow = ((jd % 7) + 1) % 7; // 0=Sun..6=Sat
   var label = name;
-  if (dow === 0){ jd += 1; label = name + ' (observed)'; }       // Sunday -> following Monday
-  else if (dow === 6){ jd -= 1; label = name + ' (observed)'; }  // Saturday -> preceding Friday
   pushHoliday(H, jd, label);
+  if (dow === 0) {
+    jd += 1;
+    label = name + ' (observed)';
+    pushHoliday(H, jd, label);
+  } // Sunday -> following Monday
+  else if (dow === 6) {
+    jd -= 1;
+    label = name + ' (observed)';
+    pushHoliday(H, jd, label);
+  } // Saturday -> preceding Friday
 }
 function federalHolidays(year){
   var H = {};
   observedFixedHoliday(H, year,1,1,   "New Year's Day");
-  pushHoliday(H, nthWeekdayOfMonth(year,1,DOW_MO,3),  "MLK Day");
-  pushHoliday(H, nthWeekdayOfMonth(year,2,DOW_MO,3),  "Presidents Day");
+  pushHoliday(H, nthWeekdayOfMonth(year,1,DOW_MO,3),  "ML King Day");
+  pushHoliday(H, nthWeekdayOfMonth(year,2,DOW_MO,3),  "Washington's birthday");
+  pushHoliday(H, nthWeekdayOfMonth(year,3,DOW_SU,2),  "Daylight Saving");
   pushHoliday(H, nthWeekdayOfMonth(year,5,DOW_MO,-1), "Memorial Day");
   observedFixedHoliday(H, year,6,19,  "Juneteenth");
   observedFixedHoliday(H, year,7,4,   "Independence Day");
   pushHoliday(H, nthWeekdayOfMonth(year,9,DOW_MO,1),  "Labor Day");
   pushHoliday(H, nthWeekdayOfMonth(year,10,DOW_MO,2), "Columbus Day");
-  observedFixedHoliday(H, year,11,11, "Veterans Day");
+  pushHoliday(H, nthWeekdayOfMonth(year,11,DOW_SU,1),  "Standard Time");
+  observedFixedHoliday(H, year,11,11, "Armistice Day");
   pushHoliday(H, nthWeekdayOfMonth(year,11,DOW_TH,4), "Thanksgiving");
   observedFixedHoliday(H, year,12,25, "Christmas");
+  pushHoliday(H, fixedDate(year,1,15), "ML King Jr");
+  pushHoliday(H, fixedDate(year,2,12), "Lincoln");
+  pushHoliday(H, fixedDate(year,2,22), "Washington");
   return H;
 }
 function religiousHolidays(year){
@@ -1407,7 +1413,7 @@ function render(){
       var at = document.createElement('div');
       at.className = 'tag appt' + (a.recurring ? ' recurring' : '');
       var marker = a.recurring ? '\u21bb ' : '';
-      var timeLabel = a.allDay ? '' : (a.time ? '<b>' + a.time + '</b>' : '');
+      var timeLabel = a.allDay ? '::' : (a.time ? '<b>' + a.time + '</b>' : '');
       at.innerHTML = marker + timeLabel + (a.text ? escapeHtml(a.text) : '');
       tags.appendChild(at);
     });
@@ -2007,7 +2013,7 @@ function openDayPanel(jd, parts, holidayName, moonInfo, seasonInfo, recurringLis
   document.getElementById('dpDate').textContent = dow + ', ' + MonthName[parts.m] + ' ' + parts.d + ', ' + parts.y;
   document.getElementById('dpJdn').textContent = 'JDN ' + jd;
   document.getElementById('dpIso').textContent = 'ISO week ' + pad(iso.week,2);
-  document.getElementById('dpBuild').textContent = 'build 20260830_36_13:38:02';
+  document.getElementById('dpBuild').textContent = 'build 20261025_44_07:05:30';
   document.getElementById('dpHoliday').textContent = holidayName || '';
   document.getElementById('dpMoon').textContent = moonInfo ? (moonInfo.glyph + ' ' + moonInfo.label + ' \u2014 ' + moonInfo.time) : '';
   document.getElementById('dpSeason').textContent = seasonInfo ? (seasonInfo.label + ' \u2014 ' + seasonInfo.time) : '';
